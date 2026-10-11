@@ -9,14 +9,6 @@ source=source.replace(/<body(?: data-entry="[^"]*")?>/,'<body data-entry="home">
 source=source.replace("decodeURIComponent(location.hash.slice(1))||'home'","decodeURIComponent(location.hash.slice(1))||document.body.dataset.entry||'home'");
 source=source.replace("document.getElementById(a.hash.slice(1))","document.getElementById(a.dataset.route||a.hash.slice(1))").replace("a.hash==='#home'","(a.dataset.route||a.hash.slice(1))==='home'");
 for(const [id] of routes){const file=id==='home'?'index.html':id+'.html';source=source.replaceAll('href="#'+id+'"','href="'+file+'" data-route="'+id+'"');}
-const routeFiles=Object.fromEntries(routes.map(([id])=>[id,id==='home'?'index.html':id+'.html']));
-if(!source.includes('id="page-share-tools"')){
-source=source.replace('<main','<div id="page-share-tools" style="max-width:1160px;margin:12px auto;padding:0 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button type="button" id="copy-page-link" style="font:inherit;padding:10px 16px;border:1px solid #b9c9d3;border-radius:8px;background:#fff;color:#142d42;cursor:pointer">Copy page link</button><a id="share-page-whatsapp" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a><span id="page-share-status" role="status"></span></div><main');
-source=source.replace('</body>',`<script id="page-sharing-script">
-(()=>{const routes=${JSON.stringify(routeFiles)};const base=${JSON.stringify(base)};function current(){let id;try{id=decodeURIComponent(location.hash.slice(1))}catch{}id=id||document.body.dataset.entry||'home';return base+(routes[id]||routes[document.body.dataset.entry]||'index.html');}
-function update(){document.getElementById('share-page-whatsapp').href='https://wa.me/?text='+encodeURIComponent(current());}update();window.addEventListener('hashchange',update);document.getElementById('copy-page-link').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(current());document.getElementById('page-share-status').textContent='Page link copied.';}catch{window.prompt('Copy this page link:',current());}});})();
-</script></body>`);
-}
 for(const [id,label,description] of routes){
 let s=source.replace(/<body data-entry="[^"]*">/,'<body data-entry="'+id+'">');
 const file=id==='home'?'index.html':id+'.html';const url=base+file;const title=label+' | Warkfin Football Academy';
