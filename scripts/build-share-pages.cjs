@@ -19,6 +19,12 @@ const values={'description':description,'og:title':title,'twitter:title':title,'
 s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in values?'<meta '+attr+'="'+key+'" content="'+escape(values[key])+'">':tag);
 if(photo)s=s.replace(/<meta property="og:image:(width|height)" content="[^"]*">/g,'');
 s=s.replace(/<link rel="canonical" href="[^"]*">/,'<link rel="canonical" href="'+url+'">');
+if(id==='updates'){
+ const actionImage=base+'assets/training/2026-10-10/small-post-photo-05.jpg';
+ const previewValues={'og:image':actionImage,'og:image:secure_url':actionImage,'twitter:image':actionImage,'og:image:type':'image/jpeg','og:image:width':'1020','og:image:height':'768','og:image:alt':'Player on the ball during Warkfin Football Academy training on 10 October 2026','twitter:image:alt':'Player on the ball during Warkfin Football Academy training on 10 October 2026'};
+ s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in previewValues?'<meta '+attr+'="'+key+'" content="'+previewValues[key]+'">':tag);
+ fs.writeFileSync(path.join(root,'training-news.html'),s.replaceAll(base+'updates.html',base+'training-news.html'));
+}
 fs.writeFileSync(path.join(root,file),s);
 }
 console.log('Generated '+routes.length+' shareable pages.');
