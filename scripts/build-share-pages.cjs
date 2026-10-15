@@ -13,14 +13,14 @@ for(const [id,label,description] of routes){
 let s=source.replace(/<body data-entry="[^"]*">/,'<body data-entry="'+id+'">');
 const file=id==='home'?'index.html':id+'.html';const url=base+file;const title=label+' | Warkfin Football Academy';
 const photo=['training-hub','media','photos','videos','activities','event-2026-10-10'].includes(id);
-const img=base+(photo?'assets/training/2026-10-10/full-post-photo-01.jpg':'assets/warkfin-crest.png');
+const img=base+(photo?'assets/training/2026-10-10/full-post-photo-01-enhanced.jpg':'assets/warkfin-crest.png');
 s=s.replace(/<title>[^<]*<\/title>/,'<title>'+escape(title)+'</title>');
 const values={'description':description,'og:title':title,'twitter:title':title,'og:description':description,'twitter:description':description,'og:url':url,'og:image':img,'og:image:secure_url':img,'twitter:image':img,'og:image:type':photo?'image/jpeg':'image/png','og:image:alt':photo?'Full-post practice at UNICAL Primary School Main Field':label+' — Warkfin Football Academy','twitter:image:alt':photo?'Full-post practice at UNICAL Primary School Main Field':label+' — Warkfin Football Academy'};
 s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in values?'<meta '+attr+'="'+key+'" content="'+escape(values[key])+'">':tag);
 if(photo)s=s.replace(/<meta property="og:image:(width|height)" content="[^"]*">/g,'');
 s=s.replace(/<link rel="canonical" href="[^"]*">/,'<link rel="canonical" href="'+url+'">');
 if(id==='updates'){
- const actionImage=base+'assets/training/2026-10-10/small-post-photo-05.jpg';
+ const actionImage=base+'assets/training/2026-10-10/small-post-photo-05-enhanced.jpg';
  const previewValues={'og:image':actionImage,'og:image:secure_url':actionImage,'twitter:image':actionImage,'og:image:type':'image/jpeg','og:image:width':'1020','og:image:height':'768','og:image:alt':'Player on the ball during Warkfin Football Academy training on 10 October 2026','twitter:image:alt':'Player on the ball during Warkfin Football Academy training on 10 October 2026'};
  s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in previewValues?'<meta '+attr+'="'+key+'" content="'+previewValues[key]+'">':tag);
  fs.writeFileSync(path.join(root,'training-news.html'),s.replaceAll(base+'updates.html',base+'training-news.html'));
