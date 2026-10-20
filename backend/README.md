@@ -111,3 +111,9 @@ The blueprint needs exact `DJANGO_ALLOWED_HOSTS`, HTTPS `PORTAL_ORIGIN`, `DATABA
 Email-provider tests mock the external API; no email was sent and no account provisioned during these tests. Database URL parsing is tested without connecting to a real Neon database. Connect Render and Neon before provisioning. Published plan details can change; recheck the dashboard before creating any resource.
 
 References: https://render.com/docs/free · https://neon.com/pricing · https://developers.brevo.com/reference/send-transac-email
+
+
+### Protected staging deployment
+Production defaults to `PORTAL_ENABLED=0`: all routes except `/health/` and static assets return a public preparation page with HTTP 503 and no data access. Login, admin and POST requests are blocked. This allows infrastructure checks before email credentials and owner setup are complete. Set `PORTAL_ENABLED=1` only after the release gates above pass; missing email configuration then fails startup.
+
+Use a pooled `DATABASE_URL` for the running app and `DATABASE_URL_UNPOOLED` for migrations. Run `python manage.py migrate --settings=config.migration_settings --noinput`. Never commit either URL. Owner login is `warkfin003@gmail.com`; this setting does not grant privileges or create an account.

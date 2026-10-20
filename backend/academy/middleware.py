@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.shortcuts import render
 import hashlib
 from datetime import timedelta
 from django.http import HttpResponse
@@ -27,3 +29,19 @@ class PortalMiddleware:
         response['Cache-Control']='private, no-store'
         response['Content-Security-Policy']="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
         return response
+
+
+class LaunchGateMiddleware:
+    """Keep all account and data routes closed during infrastructure setup."""
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not settings.PORTAL_ENABLED and request.path != '/health/':
+            response = render(request, 'launch_pending.html', status=503)
+            response['Cache-Control'] = 'no-store'
+            response['Retry-After'] = '3600'
+            response['X-Robots-Tag'] = 'noindex, nofollow'
+            response['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+            return response
+        return self.get_response(request)

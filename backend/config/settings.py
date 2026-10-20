@@ -5,6 +5,8 @@ from .database import postgres_from_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
+# Production remains closed until email delivery and owner setup pass release checks.
+PORTAL_ENABLED = os.environ.get('PORTAL_ENABLED', '1' if DEBUG else '0') == '1'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 if not SECRET_KEY:
     if not DEBUG:
@@ -12,7 +14,7 @@ if not SECRET_KEY:
     SECRET_KEY = 'local-development-only-not-for-deployment-' * 2
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'academy']
-MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'academy.middleware.PortalMiddleware']
+MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'academy.middleware.LaunchGateMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'academy.middleware.PortalMiddleware']
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
@@ -49,7 +51,7 @@ EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'academy@localhost')
 PORTAL_ORIGIN = os.environ.get('PORTAL_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')
 email_ready = bool(BREVO_API_KEY) if EMAIL_TRANSPORT == 'brevo' else bool(EMAIL_HOST)
-if not DEBUG and (not email_ready or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
+if not DEBUG and PORTAL_ENABLED and (not email_ready or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
     raise ImproperlyConfigured('Configure HTTPS PORTAL_ORIGIN and a real email sender/service.')
 CSRF_TRUSTED_ORIGINS = [PORTAL_ORIGIN] if PORTAL_ORIGIN.startswith('https://') else []
 SESSION_COOKIE_HTTPONLY = True

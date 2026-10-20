@@ -30,3 +30,17 @@ class EmailTransportTests(SimpleTestCase):
         open_url.side_effect=HTTPError('https://api.brevo.com',429,'quota',{},None)
         with self.assertRaises(EmailDeliveryError):BrevoEmailBackend().send_messages([self.message()])
         self.assertEqual(BrevoEmailBackend(fail_silently=True).send_messages([self.message()]),0)
+
+
+@override_settings(PORTAL_ENABLED=False, ALLOWED_HOSTS=['testserver'])
+class LaunchGateTests(SimpleTestCase):
+    def test_private_routes_and_posts_remain_closed_without_database_access(self):
+        for path in ['/', '/accounts/register/', '/accounts/login/', '/admin/', '/profile/']:
+            for method in [self.client.get, self.client.post]:
+                response = method(path)
+                self.assertEqual(response.status_code, 503)
+                self.assertContains(response, 'sign-in are not open yet', status_code=503)
+                self.assertEqual(response['Cache-Control'], 'no-store')
+
+    def test_health_remains_available(self):
+        self.assertEqual(self.client.get('/health/').status_code, 200)
