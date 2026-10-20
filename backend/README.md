@@ -117,3 +117,9 @@ References: https://render.com/docs/free · https://neon.com/pricing · https://
 Production defaults to `PORTAL_ENABLED=0`: all routes except `/health/` and static assets return a public preparation page with HTTP 503 and no data access. Login, admin and POST requests are blocked. This allows infrastructure checks before email credentials and owner setup are complete. Set `PORTAL_ENABLED=1` only after the release gates above pass; missing email configuration then fails startup.
 
 Use a pooled `DATABASE_URL` for the running app and `DATABASE_URL_UNPOOLED` for migrations. Run `python manage.py migrate --settings=config.migration_settings --noinput`. Never commit either URL. Owner login is `warkfin003@gmail.com`; this setting does not grant privileges or create an account.
+
+
+### First-owner activation without a server shell
+`python manage.py invite_owner` sends a one-hour activation link only to `OWNER_LOGIN_EMAIL`. The owner starts inactive with no usable password. The link uses a separate Django password-reset token salt, removes the token from the form URL, requires a CSRF-protected password submission, and becomes invalid after use. Existing applicants cannot be promoted by this command. `--resend` replaces an uncompleted invitation; no link or password is printed to logs.
+
+Configure real email delivery, then set `OWNER_ACTIVATION_ENABLED=1` while keeping `PORTAL_ENABLED=0`. Only the activation path is admitted through the launch gate. Run the invitation command once through a controlled deployment startup command if no shell is available. The normal startup does not send invitations. After activation, remove the invitation startup command and set `OWNER_ACTIVATION_ENABLED=0`. Do not open the full portal before the remaining release checks (including owner MFA) pass.

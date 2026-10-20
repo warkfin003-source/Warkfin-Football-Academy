@@ -6,6 +6,7 @@ from .database import postgres_from_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
 # Production remains closed until email delivery and owner setup pass release checks.
+OWNER_ACTIVATION_ENABLED = os.environ.get('OWNER_ACTIVATION_ENABLED', '0') == '1'
 PORTAL_ENABLED = os.environ.get('PORTAL_ENABLED', '1' if DEBUG else '0') == '1'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 if not SECRET_KEY:
@@ -50,8 +51,8 @@ EMAIL_USE_TLS = True
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'academy@localhost')
 PORTAL_ORIGIN = os.environ.get('PORTAL_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')
-email_ready = bool(BREVO_API_KEY) if EMAIL_TRANSPORT == 'brevo' else bool(EMAIL_HOST)
-if not DEBUG and PORTAL_ENABLED and (not email_ready or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
+EMAIL_READY = bool(BREVO_API_KEY) if EMAIL_TRANSPORT == 'brevo' else bool(EMAIL_HOST)
+if not DEBUG and (PORTAL_ENABLED or OWNER_ACTIVATION_ENABLED) and (not EMAIL_READY or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
     raise ImproperlyConfigured('Configure HTTPS PORTAL_ORIGIN and a real email sender/service.')
 CSRF_TRUSTED_ORIGINS = [PORTAL_ORIGIN] if PORTAL_ORIGIN.startswith('https://') else []
 SESSION_COOKIE_HTTPONLY = True

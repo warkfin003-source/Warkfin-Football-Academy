@@ -3,12 +3,14 @@ from django.contrib.auth import views as auth
 from academy import views
 from academy.admin import site
 from academy.forms import EmailLoginForm
+from academy.owner_activation import OwnerActivationView
 
 urlpatterns=[
     path('',views.dashboard,name='dashboard'),
     path('health/',views.health),
     path('policies/',views.policies,name='policies'),
     path('admin/',site.urls),
+    path('accounts/owner-activate/<uidb64>/<token>/', OwnerActivationView.as_view(), name='owner-activate'),
     path('accounts/register/',views.signup,name='signup'),
     path('accounts/resend/',views.resend_verification,name='resend'),
     path('accounts/verify/<str:token>/',views.verify,name='verify'),

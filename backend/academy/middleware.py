@@ -37,7 +37,8 @@ class LaunchGateMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not settings.PORTAL_ENABLED and request.path != '/health/':
+        activation = settings.OWNER_ACTIVATION_ENABLED and request.path.startswith('/accounts/owner-activate/')
+        if not settings.PORTAL_ENABLED and request.path != '/health/' and not activation:
             response = render(request, 'launch_pending.html', status=503)
             response['Cache-Control'] = 'no-store'
             response['Retry-After'] = '3600'
