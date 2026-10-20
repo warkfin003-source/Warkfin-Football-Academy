@@ -37,6 +37,12 @@ if(id==='updates'){
  s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in previewValues?'<meta '+attr+'="'+key+'" content="'+previewValues[key]+'">':tag);
  fs.writeFileSync(path.join(root,'training-news.html'),s.replaceAll(base+'updates.html',base+'training-news.html'));
 }
+if(['media','photos','videos','activities','updates'].includes(id)){
+const d="Saturday, 17 October 2026: Squad B 3–0 Squad A. Explore training and welcome friendly photos, match action and squad videos by date.";
+const v={'description':d,'og:description':d,'twitter:description':d,'og:image':base+'assets/training/2026-10-17/action-01.jpg','og:image:secure_url':base+'assets/training/2026-10-17/action-01.jpg','twitter:image':base+'assets/training/2026-10-17/action-01.jpg','og:image:alt':'Action from training and the welcome friendly on 17 October 2026','twitter:image:alt':'Action from training and the welcome friendly on 17 October 2026'};
+s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,a,k)=>k in v?'<meta '+a+'="'+k+'" content="'+escape(v[k])+'">':tag).replace(/<meta property="og:image:(width|height)" content="[^"]*">/g,'');
+}
+if(id==='updates')fs.writeFileSync(path.join(root,'training-news.html'),s.replaceAll(base+'updates.html',base+'training-news.html'));
 fs.writeFileSync(path.join(root,file),s);
 }
 console.log('Generated '+routes.length+' shareable pages.');
