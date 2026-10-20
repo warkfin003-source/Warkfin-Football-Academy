@@ -96,3 +96,18 @@ Payments and public comparative attendance/statistics are outside this first rel
 | `/health/` | Public minimal liveness status |
 
 No endpoint lists private player records publicly. A healthy liveness endpoint does not prove the database or email service is available.
+
+
+## Free pilot configuration (20 October 2026)
+
+Owner login email: `warkfin003@gmail.com`. This is configuration only; it does not create an owner, verify the address or grant access to a public signup. The owner must still be bootstrapped through the controlled setup process.
+
+`render.yaml` explicitly requests a Free web service. Use Neon Free for PostgreSQL via the secret `DATABASE_URL`, with `sslmode=require` or stricter. No Render database is included: Render Free PostgreSQL expires after 30 days. The service sleeps when idle and has ephemeral local storage, so it is a pilot environment, not a promise of continuous production availability. Keep accounts on Free plans and do not enable paid add-ons or automatic paid upgrades.
+
+Render Free blocks SMTP ports 25/465/587. The new `EMAIL_TRANSPORT=brevo` adapter uses Brevo HTTPS transactional email for verification/reset messages. A Brevo Free account, approved transactional sending access and a verified sender are required. Verify whether the owner's Gmail address is accepted as a sender before configuring it; otherwise resolve sender verification without buying anything automatically. The owner login email and the sending address need not be the same. API credentials are configured only in the host's private environment settings.
+
+The blueprint needs exact `DJANGO_ALLOWED_HOSTS`, HTTPS `PORTAL_ORIGIN`, `DATABASE_URL`, `BREVO_API_KEY` and `DEFAULT_FROM_EMAIL`. It creates no paid resources and no owner account. Confirm the selected runtime supports Django 5.2 and the trusted Render proxy before deployment. The HTTPS proxy flag is intended only for Render's controlled ingress. Free deployments do not provide an interactive shell; use a controlled one-time setup workflow to create the owner before pilot invitations. That workflow and owner MFA remain release gates.
+
+Email-provider tests mock the external API; no email was sent and no account provisioned during these tests. Database URL parsing is tested without connecting to a real Neon database. Connect Render and Neon before provisioning. Published plan details can change; recheck the dashboard before creating any resource.
+
+References: https://render.com/docs/free · https://neon.com/pricing · https://developers.brevo.com/reference/send-transac-email

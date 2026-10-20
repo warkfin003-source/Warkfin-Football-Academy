@@ -1,4 +1,5 @@
 from getpass import getpass
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
@@ -7,10 +8,11 @@ from academy.models import User
 
 class Command(BaseCommand):
     help='Create the first owner interactively. Never pass a password as a command argument.'
-    def add_arguments(self,parser): parser.add_argument('--email',required=True)
+    def add_arguments(self,parser): parser.add_argument('--email',default=settings.OWNER_LOGIN_EMAIL)
     def handle(self,*args,**options):
         if User.objects.filter(is_superuser=True).exists(): raise CommandError('An owner already exists. Use the existing owner to manage staff.')
         email=options['email'].strip().lower()
+        if not email: raise CommandError('Set OWNER_LOGIN_EMAIL or provide --email.')
         try: validate_email(email)
         except ValidationError as exc: raise CommandError(str(exc))
         if User.objects.filter(email__iexact=email).exists(): raise CommandError('Account already exists. Do not silently promote an applicant.')

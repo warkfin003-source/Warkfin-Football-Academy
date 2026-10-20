@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
+from .database import postgres_from_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
@@ -15,7 +16,9 @@ MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middl
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
-if os.environ.get('POSTGRES_HOST'):
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {'default': postgres_from_url(os.environ['DATABASE_URL'])}
+elif os.environ.get('POSTGRES_HOST'):
     DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': os.environ['POSTGRES_DB'], 'USER': os.environ['POSTGRES_USER'], 'PASSWORD': os.environ['POSTGRES_PASSWORD'], 'HOST': os.environ['POSTGRES_HOST'], 'PORT': os.environ.get('POSTGRES_PORT', '5432'), 'OPTIONS': {'sslmode': os.environ.get('POSTGRES_SSLMODE', 'require')}, 'CONN_MAX_AGE': 60}}
 else:
     if not DEBUG:
@@ -34,7 +37,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STORAGES = {'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'}}
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_TRANSPORT = os.environ.get('EMAIL_TRANSPORT', 'smtp')
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else ('academy.email_backend.BrevoEmailBackend' if EMAIL_TRANSPORT == 'brevo' else 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
@@ -43,7 +48,8 @@ EMAIL_USE_TLS = True
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'academy@localhost')
 PORTAL_ORIGIN = os.environ.get('PORTAL_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')
-if not DEBUG and (not EMAIL_HOST or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
+email_ready = bool(BREVO_API_KEY) if EMAIL_TRANSPORT == 'brevo' else bool(EMAIL_HOST)
+if not DEBUG and (not email_ready or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
     raise ImproperlyConfigured('Configure HTTPS PORTAL_ORIGIN and a real email sender/service.')
 CSRF_TRUSTED_ORIGINS = [PORTAL_ORIGIN] if PORTAL_ORIGIN.startswith('https://') else []
 SESSION_COOKIE_HTTPONLY = True
@@ -63,3 +69,4 @@ if os.environ.get('TRUST_HTTPS_PROXY') == '1':
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 DATA_UPLOAD_MAX_MEMORY_SIZE = 262144
 PASSWORD_RESET_TIMEOUT = 3600
+OWNER_LOGIN_EMAIL = os.environ.get('OWNER_LOGIN_EMAIL', '').strip().lower()

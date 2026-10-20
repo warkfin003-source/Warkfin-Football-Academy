@@ -1,0 +1,32 @@
+# Free pilot only. No database, paid disk, worker, cron or paid instance is provisioned.
+services:
+  - type: web
+    name: warkfin-academy-portal
+    runtime: python
+    branch: feature/academy-backend-20261020
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: OWNER_LOGIN_EMAIL
+        value: warkfin003@gmail.com
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: PORTAL_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: EMAIL_TRANSPORT
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: TRUST_HTTPS_PROXY
+        value: "1"

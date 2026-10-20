@@ -1,0 +1,32 @@
+import json
+from unittest.mock import patch, MagicMock
+from django.test import SimpleTestCase, override_settings
+from django.core.exceptions import ImproperlyConfigured
+from django.core.mail import EmailMessage
+from urllib.error import HTTPError
+from config.database import postgres_from_url
+from .email_backend import BrevoEmailBackend, EmailDeliveryError
+
+class DatabaseConfigurationTests(SimpleTestCase):
+    def test_tls_connection_parsing(self):
+        db=postgres_from_url('postgresql://demo:encoded%40password@db.example.test/academy?sslmode=require')
+        self.assertEqual(db['PASSWORD'],'encoded@password');self.assertEqual(db['OPTIONS']['sslmode'],'require');self.assertTrue(db['DISABLE_SERVER_SIDE_CURSORS'])
+    def test_invalid_or_insecure_configuration_fails_without_leaking_secret(self):
+        for url in ['https://demo:secret@db.example.test/academy','postgresql://demo:secret@db.example.test/academy?sslmode=disable','postgresql://db.example.test/academy']:
+            with self.assertRaises(ImproperlyConfigured) as error:postgres_from_url(url)
+            self.assertNotIn('secret',str(error.exception))
+
+@override_settings(BREVO_API_KEY='test-key-only',EMAIL_TIMEOUT=10)
+class EmailTransportTests(SimpleTestCase):
+    def message(self):return EmailMessage('Verify your account','Test body','academy@example.test',['player@example.test'])
+    @patch('academy.email_backend.urlopen')
+    def test_api_submission(self,open_url):
+        response=MagicMock();response.status=201;open_url.return_value.__enter__.return_value=response
+        self.assertEqual(BrevoEmailBackend().send_messages([self.message()]),1)
+        request=open_url.call_args.args[0];self.assertEqual(request.full_url,'https://api.brevo.com/v3/smtp/email')
+        self.assertEqual(json.loads(request.data)['to'],[{'email':'player@example.test'}])
+    @patch('academy.email_backend.urlopen')
+    def test_provider_failure_not_reported_as_success(self,open_url):
+        open_url.side_effect=HTTPError('https://api.brevo.com',429,'quota',{},None)
+        with self.assertRaises(EmailDeliveryError):BrevoEmailBackend().send_messages([self.message()])
+        self.assertEqual(BrevoEmailBackend(fail_silently=True).send_messages([self.message()]),0)
