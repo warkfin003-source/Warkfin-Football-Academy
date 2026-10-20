@@ -25,6 +25,10 @@ if(['updates','activities','photos','media','squad'].includes(id)){
  s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,attr,key)=>key in groupValues?'<meta '+attr+'="'+key+'" content="'+escape(groupValues[key])+'">':tag);
  s=s.replace(/<meta property="og:image:(width|height)" content="[^"]*">/g,'');
 }
+if(['photos','media'].includes(id)){
+const v={'description':'Explore 13 photos from our 15 October 2026 training, earlier practice galleries and published YouTube highlights.','og:description':'Explore 13 photos from our 15 October 2026 training, earlier practice galleries and published YouTube highlights.','twitter:description':'Explore 13 photos from our 15 October 2026 training, earlier practice galleries and published YouTube highlights.','og:image':base+'assets/training/2026-10-15/photo-10.jpg','og:image:secure_url':base+'assets/training/2026-10-15/photo-10.jpg','twitter:image':base+'assets/training/2026-10-15/photo-10.jpg','og:image:alt':'Players at academy training on 15 October 2026','twitter:image:alt':'Players at academy training on 15 October 2026'};
+s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,a,k)=>k in v?'<meta '+a+'="'+k+'" content="'+escape(v[k])+'">':tag);
+}
 if(id==='updates'){
  const newsDescription="Training every Tuesday at 4:00 p.m. WAT. Next: 20 October; venue to be confirmed. Explore 13 October photos and video, plus the Squad B 3–0 Squad A report.";
  s=s.replace(/<meta (name|property)="(description|og:description|twitter:description)" content="[^"]*">/g,(tag,attr,key)=>'<meta '+attr+'="'+key+'" content="'+escape(newsDescription)+'">');
