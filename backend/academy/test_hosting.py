@@ -45,3 +45,37 @@ class LaunchGateTests(SimpleTestCase):
 
     def test_health_remains_available(self):
         self.assertEqual(self.client.get('/health/').status_code, 200)
+
+
+class SafeEmailDiagnosticsTests(SimpleTestCase):
+    def test_provider_response_never_leaks_secrets(self):
+        import io
+        from .email_backend import provider_error
+        error = HTTPError('https://api.brevo.com', 401, 'denied', {},
+                          io.BytesIO(b'{"message":"unrecognized IP secret-api-key private-token"}'))
+        message = str(provider_error(error))
+        self.assertIn('IP authorization', message)
+        self.assertNotIn('secret-api-key', message)
+        self.assertNotIn('private-token', message)
+
+    @override_settings(BREVO_API_KEY='Your private Brevo API key')
+    @patch('academy.email_backend.urlopen')
+    def test_placeholder_never_sent_to_provider(self, open_url):
+        with self.assertRaises(EmailDeliveryError):
+            BrevoEmailBackend().send_messages([EmailMessage('Test', 'Body', 'a@example.test', ['b@example.test'])])
+        open_url.assert_not_called()
+
+    def test_startup_is_opt_in_and_email_failure_does_not_stop_server(self):
+        import importlib.util
+        import os
+        from pathlib import Path
+        spec = importlib.util.spec_from_file_location('portal_gunicorn', Path(__file__).resolve().parents[1] / 'gunicorn.conf.py')
+        config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config)
+        server = MagicMock()
+        with patch.dict(os.environ, {'OWNER_INVITE_ON_START': '0'}), patch('django.setup') as setup:
+            config.on_starting(server)
+            setup.assert_not_called()
+        with patch.dict(os.environ, {'OWNER_INVITE_ON_START': '1'}), patch('django.setup', side_effect=RuntimeError('private-secret')):
+            config.on_starting(server)
+        self.assertNotIn('private-secret', str(server.log.error.call_args))
