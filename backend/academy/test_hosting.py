@@ -79,3 +79,32 @@ class SafeEmailDiagnosticsTests(SimpleTestCase):
         with patch.dict(os.environ, {'OWNER_INVITE_ON_START': '1'}), patch('django.setup', side_effect=RuntimeError('private-secret')):
             config.on_starting(server)
         self.assertNotIn('private-secret', str(server.log.error.call_args))
+
+
+from django.test import TestCase
+
+
+@override_settings(OWNER_LOGIN_EMAIL='owner@example.test', OWNER_ACTIVATION_ENABLED=True)
+class OwnerResendHookTests(TestCase):
+    def test_replacement_request_is_consumed_by_success_audit(self):
+        """Restarting after a successful replacement must not invalidate its link."""
+        import importlib.util
+        import os
+        from datetime import timedelta
+        from pathlib import Path
+        from django.utils import timezone
+        from academy.models import User, AuditEvent
+        owner = User.objects.create(username='owner@example.test', email='owner@example.test', is_active=False)
+        old = AuditEvent.objects.create(action='owner.invitation_sent', object_reference=f'user:{owner.pk}')
+        cutoff = timezone.now()
+        AuditEvent.objects.filter(pk=old.pk).update(created_at=cutoff - timedelta(hours=2))
+        spec = importlib.util.spec_from_file_location('resend_gunicorn', Path(__file__).resolve().parents[1] / 'gunicorn.conf.py')
+        config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config)
+        with patch.dict(os.environ, {'OWNER_INVITE_ON_START': '1', 'OWNER_INVITE_RESEND_AFTER': cutoff.isoformat()}), patch('django.setup'), patch('django.db.connections.close_all'), patch('django.core.management.call_command') as command:
+            config.on_starting(MagicMock())
+            command.assert_called_once_with('invite_owner', resend=True)
+            AuditEvent.objects.create(action='owner.invitation_sent', object_reference=f'user:{owner.pk}')
+            command.reset_mock()
+            config.on_starting(MagicMock())
+            command.assert_called_once_with('invite_owner', resend=False)

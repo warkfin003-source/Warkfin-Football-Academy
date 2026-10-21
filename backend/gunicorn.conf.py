@@ -17,7 +17,9 @@ def on_starting(server):
         django.setup()
         from django.conf import settings
         from django.core.management import call_command
-        from academy.models import User
+        from academy.models import User, AuditEvent
+        from django.utils.dateparse import parse_datetime
+        from django.utils.timezone import is_aware
         if not settings.OWNER_ACTIVATION_ENABLED:
             server.log.warning('Owner invitation skipped: activation is disabled.')
             return
@@ -25,7 +27,22 @@ def on_starting(server):
         if User.objects.filter(email__iexact=settings.OWNER_LOGIN_EMAIL, is_active=True).exists():
             server.log.info('Owner invitation skipped: account already active.')
             return
-        call_command('invite_owner')
+        # An operator can request one replacement using an ISO timestamp. The
+        # successful invitation audit prevents repeats on subsequent restarts.
+        resend = False
+        requested = os.environ.get('OWNER_INVITE_RESEND_AFTER', '')
+        if requested:
+            cutoff = parse_datetime(requested)
+            if cutoff is None or not is_aware(cutoff):
+                server.log.error('Owner invitation skipped: invalid resend timestamp.')
+                return
+            owner = User.objects.filter(email__iexact=settings.OWNER_LOGIN_EMAIL).first()
+            if owner:
+                latest = AuditEvent.objects.filter(
+                    action='owner.invitation_sent', object_reference=f'user:{owner.pk}'
+                ).order_by('-created_at').first()
+                resend = latest is not None and latest.created_at < cutoff
+        call_command('invite_owner', resend=resend)
     except Exception:
         # The transport emits a safe HTTP classification separately. No traceback
         # here: exception messages can contain credentials or activation links.
