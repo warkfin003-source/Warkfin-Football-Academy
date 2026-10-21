@@ -1,1 +1,2 @@
+"""Django project configuration package."""
 

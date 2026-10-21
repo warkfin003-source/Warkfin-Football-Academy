@@ -1,3 +1,4 @@
+"""Launch controls, account-request throttling and response privacy headers."""
 from django.conf import settings
 from django.shortcuts import render
 import hashlib

@@ -1,3 +1,4 @@
+"""Interactive first-owner creation for trusted local administration; never accept a password argument."""
 from getpass import getpass
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password

@@ -1,3 +1,4 @@
+"""Environment-based configuration. Production starts locked; secrets belong in hosting settings."""
 import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
@@ -14,11 +15,13 @@ if not SECRET_KEY:
         raise ImproperlyConfigured('Set DJANGO_SECRET_KEY before starting the backend.')
     SECRET_KEY = 'local-development-only-not-for-deployment-' * 2
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Django provides authentication, sessions, CSRF and admin; academy holds domain workflows.
 INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'academy']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'academy.middleware.LaunchGateMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'academy.middleware.PortalMiddleware']
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
+# Web requests use the pooled URL; migration_settings selects the direct endpoint separately.
 if os.environ.get('DATABASE_URL'):
     DATABASES = {'default': postgres_from_url(os.environ['DATABASE_URL'])}
 elif os.environ.get('POSTGRES_HOST'):
@@ -28,6 +31,7 @@ else:
         raise ImproperlyConfigured('Production requires PostgreSQL configuration.')
     DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
 AUTH_USER_MODEL = 'academy.User'
+# Apply password rules to both initial signup and password-setting forms.
 AUTH_PASSWORD_VALIDATORS = [{'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'}, {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 12}}, {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'}, {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'}]
 LANGUAGE_CODE = 'en-gb'
 TIME_ZONE = 'Africa/Lagos'
@@ -36,10 +40,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+# WhiteNoise serves versioned static assets without a separate paid storage service.
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STORAGES = {'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'}}
+# Production uses a real transport. Local development uses console output only.
 EMAIL_TRANSPORT = os.environ.get('EMAIL_TRANSPORT', 'smtp')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else ('academy.email_backend.BrevoEmailBackend' if EMAIL_TRANSPORT == 'brevo' else 'django.core.mail.backends.smtp.EmailBackend')
@@ -54,7 +60,9 @@ PORTAL_ORIGIN = os.environ.get('PORTAL_ORIGIN', 'http://127.0.0.1:8000').rstrip(
 EMAIL_READY = bool(BREVO_API_KEY) if EMAIL_TRANSPORT == 'brevo' else bool(EMAIL_HOST)
 if not DEBUG and (PORTAL_ENABLED or OWNER_ACTIVATION_ENABLED) and (not EMAIL_READY or not PORTAL_ORIGIN.startswith('https://') or DEFAULT_FROM_EMAIL.endswith('@localhost')):
     raise ImproperlyConfigured('Configure HTTPS PORTAL_ORIGIN and a real email sender/service.')
+# Restrict state-changing browser requests to the configured portal origin.
 CSRF_TRUSTED_ORIGINS = [PORTAL_ORIGIN] if PORTAL_ORIGIN.startswith('https://') else []
+# Keep authenticated sessions private and require HTTPS outside local development.
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_AGE = 7200

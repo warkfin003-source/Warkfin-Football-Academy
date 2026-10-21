@@ -1,7 +1,9 @@
+"""Owner-only administration with audit events and restricted deletion/review operations."""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Squad, Player, Application, TrainingSession, Announcement, AuditEvent
 
+# Staff status alone must never grant entry to the owner administration site.
 class OwnerAdminSite(admin.AdminSite):
     site_header='Warkfin Academy · Owner administration'
     site_title='Warkfin Academy'
@@ -9,6 +11,7 @@ class OwnerAdminSite(admin.AdminSite):
     def has_permission(self,request): return request.user.is_active and request.user.is_superuser
 
 site=OwnerAdminSite(name='owner_admin')
+# Record permitted changes and disable routine deletion to preserve relationships.
 class LoggedAdmin(admin.ModelAdmin):
     def save_model(self,request,obj,form,change):
         super().save_model(request,obj,form,change)
@@ -29,6 +32,7 @@ class PlayerAdmin(LoggedAdmin):
     search_fields=('display_name',)
     list_filter=('squad','active')
 
+# Approval belongs in the transactional review workflow, not unrestricted admin editing.
 class ApplicationAdmin(admin.ModelAdmin):
     list_display=('full_name','status','submitted_at')
     readonly_fields=tuple(f.name for f in Application._meta.fields)
@@ -36,6 +40,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     def has_delete_permission(self,request,obj=None): return False
     def has_change_permission(self,request,obj=None): return False
 
+# Audit records are read-only in the admin interface.
 class AuditAdmin(admin.ModelAdmin):
     list_display=('created_at','actor','action','object_reference')
     readonly_fields=('created_at','actor','action','object_reference')

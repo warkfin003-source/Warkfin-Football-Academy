@@ -1,3 +1,4 @@
+"""Idempotently import public player names and roles; do not infer accounts or squad membership."""
 import json
 from pathlib import Path
 from django.core.management.base import BaseCommand

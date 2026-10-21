@@ -1,3 +1,4 @@
+"""Remove expired rate counters and sessions while retaining academy and audit records."""
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.utils import timezone

@@ -1,3 +1,4 @@
+"""Route map for public health checks, account flows and permission-checked academy views."""
 from django.urls import path, include
 from django.contrib.auth import views as auth
 from academy import views

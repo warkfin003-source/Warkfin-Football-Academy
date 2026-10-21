@@ -1,3 +1,4 @@
+"""Configuration, mocked email transport and closed-launch routing regression tests."""
 import json
 from unittest.mock import patch, MagicMock
 from django.test import SimpleTestCase, override_settings

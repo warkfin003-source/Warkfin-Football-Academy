@@ -1,3 +1,4 @@
+"""Owner activation tests covering expiry, replay, CSRF, delivery failure and privilege isolation."""
 import io
 import re
 from datetime import datetime, timedelta

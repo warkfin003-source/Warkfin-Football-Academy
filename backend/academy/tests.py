@@ -1,3 +1,4 @@
+"""Regression tests for application approval, role isolation and private player records."""
 from datetime import timedelta
 from io import StringIO
 from django.test import TestCase, Client, override_settings

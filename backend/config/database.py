@@ -1,3 +1,4 @@
+"""Parse private PostgreSQL connection URLs without disclosing credentials in error messages."""
 from urllib.parse import urlsplit, unquote, parse_qs
 from django.core.exceptions import ImproperlyConfigured
 

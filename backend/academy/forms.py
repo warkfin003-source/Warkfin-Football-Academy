@@ -1,9 +1,11 @@
+"""Server-side validation and explicit editable-field lists for registration and academy workflows."""
 from datetime import date
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.utils import timezone
 from .models import User, Application, Player, Squad, Availability, Attendance, Feedback
 
+# Normalize email identity; a new account receives no owner or coaching privileges.
 class SignUpForm(UserCreationForm):
     email = forms.EmailField()
     class Meta:
@@ -20,10 +22,12 @@ class SignUpForm(UserCreationForm):
         if commit: user.save()
         return user
 
+# Use the same normalized email identity as registration.
 class EmailLoginForm(AuthenticationForm):
     username = forms.EmailField(label='Email address')
     def clean_username(self): return self.cleaned_data['username'].strip().lower()
 
+# Conditional required fields and the adult age rule must be checked even with JavaScript disabled.
 class ApplicationForm(forms.ModelForm):
     rules_accepted = forms.BooleanField(label='I agree to the academy participation rules.')
     privacy_accepted = forms.BooleanField(label='I have read the privacy notice.')
@@ -45,6 +49,7 @@ class ApplicationForm(forms.ModelForm):
             self.add_error('graduation_year','Enter a completed graduation year.')
         return data
 
+# Only the owner supplies an approval decision and manually verified directory link.
 class ReviewForm(forms.Form):
     decision = forms.ChoiceField(choices=[('approved','Approve'),('correction','Request correction'),('declined','Decline')])
     squad = forms.ModelChoiceField(queryset=Squad.objects.all(), required=False)
@@ -56,21 +61,25 @@ class ReviewForm(forms.Form):
             self.add_error('squad','Select the squad for this player.')
         return data
 
+# Exclude player and session IDs; the authorized view supplies them.
 class AvailabilityForm(forms.ModelForm):
     class Meta:
         model=Availability
         fields=('response','private_note')
 
+# Allow players to edit contacts and media preference without changing approval or identity.
 class ContactProfileForm(forms.ModelForm):
     class Meta:
         model=Application
         fields=('phone','emergency_name','emergency_relationship','emergency_phone','media_consent')
 
+# The view supplies player, session and recorder; clients may submit only attendance status.
 class AttendanceForm(forms.ModelForm):
     class Meta:
         model=Attendance
         fields=('status',)
 
+# The view supplies player and author; the sharing flag controls player visibility.
 class FeedbackForm(forms.ModelForm):
     class Meta:
         model=Feedback

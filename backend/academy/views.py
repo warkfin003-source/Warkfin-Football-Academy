@@ -1,3 +1,4 @@
+"""Academy workflows with owner, assigned-coach and individual-player access boundaries."""
 import logging
 from functools import wraps
 from django.conf import settings
@@ -16,9 +17,11 @@ from django.views.decorators.http import require_POST, require_GET
 from .models import User, Application, Player, Squad, TrainingSession, Availability, Attendance, Feedback, Announcement, AuditEvent
 from .forms import SignUpForm, ApplicationForm, ReviewForm, AvailabilityForm, AttendanceForm, FeedbackForm, ContactProfileForm
 
+# Record identifiers only; never copy passwords, tokens or private form values into the audit trail.
 def audit(actor,action,obj):
     AuditEvent.objects.create(actor=actor,action=action,object_reference=f'{obj._meta.model_name}:{obj.pk}')
 
+# Authentication alone is insufficient: every owner endpoint requires the owner privilege.
 def owner_required(view):
     @login_required
     @wraps(view)
@@ -27,18 +30,22 @@ def owner_required(view):
         return view(request,*args,**kwargs)
     return wrapped
 
+# Email verification and an active linked directory record are both required.
 def approved_player(user):
     if not user.email_verified: return None
     return Player.objects.filter(user=user,active=True).first()
 
+# Coach access is restricted to explicit squad assignments; owner access covers all squads.
 def may_coach(user,squad_id):
     return user.is_superuser or (user.email_verified and user.coached_squads.filter(pk=squad_id).exists())
 
+# Bind a signed, expiring verification link to both the user ID and current email.
 def send_verification(user):
     token=signing.dumps({'uid':user.pk,'email':user.email},salt='academy-email')
     link=settings.PORTAL_ORIGIN+reverse('verify',args=[token])
     send_mail('Verify your Warkfin Academy account',f'Confirm your email to continue your application:\n{link}\nThis link expires in 24 hours. Verification does not approve academy membership.',settings.DEFAULT_FROM_EMAIL,[user.email])
 
+# Save the account before email submission so delivery failures can be retried safely.
 def signup(request):
     if request.user.is_authenticated: return redirect('dashboard')
     form=SignUpForm(request.POST or None)
@@ -54,6 +61,7 @@ def signup(request):
         return redirect('dashboard')
     return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account'})
 
+# Require a CSRF-protected POST; middleware rate-limits account endpoints.
 @login_required
 @require_POST
 def resend_verification(request):
@@ -62,6 +70,7 @@ def resend_verification(request):
         except Exception: messages.error(request,'Email could not be sent. Please try later or contact the academy.')
     return redirect('dashboard')
 
+# A GET only displays confirmation. A matching signed-in user must POST to verify.
 @login_required
 def verify(request,token):
     try:
@@ -75,6 +84,7 @@ def verify(request,token):
         return redirect('dashboard')
     return render(request,'form.html',{'title':'Confirm your email address','button':'Verify my email'})
 
+# Only verified applicants can submit; reviewed records cannot silently re-enter approval.
 @login_required
 def application(request):
     if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
@@ -89,6 +99,7 @@ def application(request):
         return redirect('dashboard')
     return render(request,'form.html',{'title':'Academy application','form':form,'button':'Submit application','application_form':True})
 
+# Filter every queryset on the server. Hiding a template section is not an access-control mechanism.
 @login_required
 def dashboard(request):
     user=request.user
@@ -110,6 +121,7 @@ def dashboard(request):
         context['announcements']=Announcement.objects.filter(allowed,published=True).distinct().order_by('-created_at')[:20]
     return render(request,'dashboard.html',context)
 
+# Lock relevant records while approving to prevent duplicate links and directory-number races.
 @owner_required
 def review(request,pk):
     obj=get_object_or_404(Application,pk=pk)
@@ -143,6 +155,7 @@ def review(request,pk):
         return redirect('dashboard')
     return render(request,'review.html',{'application':obj,'form':form,'title':'Review application'})
 
+# Accept responses only for the player’s own future, scheduled squad session.
 @login_required
 def availability(request,pk):
     player=approved_player(request.user)
@@ -155,6 +168,7 @@ def availability(request,pk):
         return redirect('dashboard')
     return render(request,'form.html',{'form':form,'title':f'Availability: {session.title}','button':'Save availability'})
 
+# Authorize the assigned coach before reading or writing individual development notes.
 @login_required
 def player_detail(request,pk):
     player=get_object_or_404(Player,pk=pk,active=True)
@@ -165,6 +179,7 @@ def player_detail(request,pk):
         return redirect('player-detail',pk=pk)
     return render(request,'player.html',{'player':player,'form':form,'feedback':Feedback.objects.filter(player=player).order_by('-created_at'),'attendance':Attendance.objects.filter(player=player).select_related('session'),'availability':Availability.objects.filter(player=player).select_related('session')})
 
+# Limit the register to the authorized session’s squad.
 @login_required
 def session_detail(request,pk):
     session=get_object_or_404(TrainingSession,pk=pk)
@@ -172,6 +187,7 @@ def session_detail(request,pk):
     players=Player.objects.filter(squad=session.squad,active=True)
     return render(request,'session.html',{'session':session,'players':players,'records':Attendance.objects.filter(session=session).select_related('player')})
 
+# Record actual attendance only after a valid session starts; never derive it from availability.
 @login_required
 def record_attendance(request,session_id,player_id):
     session=get_object_or_404(TrainingSession,pk=session_id)
@@ -185,9 +201,11 @@ def record_attendance(request,session_id,player_id):
         return redirect('session-detail',pk=session.pk)
     return render(request,'form.html',{'title':f'Attendance: {player.display_name}','form':form,'button':'Save attendance'})
 
+# A minimal process check; it does not assert email delivery or full production readiness.
 @require_GET
 def health(request): return JsonResponse({'status':'ok'})
 
+# Use the linked approved application and a restricted field list to prevent identity or role changes.
 @login_required
 def profile(request):
     if not approved_player(request.user): return HttpResponseForbidden('Approved player access required.')
@@ -199,5 +217,6 @@ def profile(request):
         return redirect('dashboard')
     return render(request,'form.html',{'form':form,'title':'My contact details','button':'Save profile'})
 
+# Show participation and privacy guidance without exposing member records.
 @require_GET
 def policies(request): return render(request,'policies.html')

@@ -1,19 +1,23 @@
+"""Persistent academy records. Authorization is enforced in views and the owner-only admin."""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.functions import Lower
 from django.core.exceptions import ValidationError
 
+# Email uniqueness is case-insensitive; verification is separate from membership approval.
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     email_verified = models.BooleanField(default=False)
     class Meta:
         constraints = [models.UniqueConstraint(Lower('email'), name='email_case_insensitive_unique')]
 
+# Only explicitly assigned coaches may access the squad’s private training records.
 class Squad(models.Model):
     name = models.CharField(max_length=80, unique=True)
     coaches = models.ManyToManyField(User, blank=True, related_name='coached_squads')
     def __str__(self): return self.name
 
+# Directory numbers identify records, not shirt numbers. Accounts are linked after owner review.
 class Player(models.Model):
     directory_number = models.PositiveIntegerField(unique=True)
     display_name = models.CharField(max_length=100)
@@ -23,6 +27,7 @@ class Player(models.Model):
     active = models.BooleanField(default=True)
     def __str__(self): return f'{self.directory_number}. {self.display_name}'
 
+# Keep contact and emergency details private; optional media consent is independent of participation.
 class Application(models.Model):
     STATUS = [('pending','Pending review'), ('approved','Approved'), ('correction','Correction requested'), ('declined','Declined')]
     KIND = [('student','Student'), ('graduate','Graduate'), ('adult','Other adult')]
@@ -54,6 +59,7 @@ class Application(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return self.full_name
 
+# Unconfirmed venues remain visibly marked until the coordinator confirms them.
 class TrainingSession(models.Model):
     STATUS = [('scheduled','Scheduled'),('completed','Completed'),('postponed','Postponed'),('cancelled','Cancelled')]
     title = models.CharField(max_length=140)
@@ -65,6 +71,7 @@ class TrainingSession(models.Model):
     status = models.CharField(max_length=12, choices=STATUS, default='scheduled')
     def __str__(self): return f'{self.title} — {self.starts_at:%d %b %Y}'
 
+# A player’s intention to attend; never treat this as actual attendance.
 class Availability(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     session = models.ForeignKey(TrainingSession, on_delete=models.CASCADE)
@@ -74,6 +81,7 @@ class Availability(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=['player','session'], name='one_availability_per_session')]
 
+# One actual attendance record per player/session, written by authorized staff.
 class Attendance(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     session = models.ForeignKey(TrainingSession, on_delete=models.CASCADE)
@@ -86,6 +94,7 @@ class Attendance(models.Model):
         if self.player_id and self.session_id and self.player.squad_id != self.session.squad_id:
             raise ValidationError('Player and session must belong to the same squad.')
 
+# Players see only their own shared feedback; staff-only notes stay private.
 class Feedback(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
@@ -94,6 +103,7 @@ class Feedback(models.Model):
     shared_with_player = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+# A blank squad targets approved members generally, not anonymous website visitors.
 class Announcement(models.Model):
     title = models.CharField(max_length=180)
     body = models.TextField(max_length=5000)
@@ -101,12 +111,14 @@ class Announcement(models.Model):
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+# Store action and record identifiers, avoiding copies of sensitive profile values.
 class AuditEvent(models.Model):
     actor = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     action = models.CharField(max_length=100)
     object_reference = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
+# Hashed fixed-window counters limit account attempts; expired rows need scheduled cleanup.
 class RateBucket(models.Model):
     key = models.CharField(max_length=64, primary_key=True)
     count = models.PositiveIntegerField(default=0)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Command-line entry point for Django checks, migrations and academy management tasks."""
 import os
 import sys
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')

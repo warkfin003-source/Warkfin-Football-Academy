@@ -1,3 +1,4 @@
+"""Create an inactive first owner and submit a private activation email without printing the link."""
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError

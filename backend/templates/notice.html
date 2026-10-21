@@ -1,1 +1,2 @@
+{# Reusable result page; Django escapes the supplied title and message by default. #}
 {% extends 'base.html' %}{% block content %}<section class="panel narrow"><h1>{{ title }}</h1><p>{{ text }}</p><a href="{% url 'dashboard' %}">Return to dashboard</a></section>{% endblock %}

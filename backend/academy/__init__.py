@@ -1,1 +1,2 @@
+"""Warkfin academy application package."""
 
