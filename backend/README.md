@@ -1,3 +1,7 @@
+# Current deployment status
+
+See [RELEASE_STATUS.md](RELEASE_STATUS.md) for verified checks, owner authenticator setup, database branch identity and remaining launch limitations. The original implementation notes below describe the first development stage.
+
 # Warkfin Football Academy backend — first implementation
 
 This is a separate Django member portal for the existing GitHub Pages academy website. It is executable source, not a deployed login service. No real private player information, credentials or databases are committed. The existing public website is unchanged by this branch.

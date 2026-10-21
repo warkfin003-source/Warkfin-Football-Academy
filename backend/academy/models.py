@@ -123,3 +123,10 @@ class RateBucket(models.Model):
     key = models.CharField(max_length=64, primary_key=True)
     count = models.PositiveIntegerField(default=0)
     expires_at = models.DateTimeField()
+
+
+class OwnerRecoveryCode(models.Model):
+    """High-entropy recovery codes are stored only as SHA-256 digests."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    digest = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

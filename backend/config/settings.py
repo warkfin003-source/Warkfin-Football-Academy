@@ -7,6 +7,11 @@ from .database import postgres_from_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
 # Production remains closed until email delivery and owner setup pass release checks.
+OWNER_SETUP_ENABLED = os.environ.get('OWNER_SETUP_ENABLED', '0') == '1'
+OWNER_MFA_REQUIRED = True
+OTP_TOTP_ISSUER = 'Warkfin Football Academy'
+OWNER_MFA_MAX_AGE = 7200
+OWNER_MFA_SETUP_MAX_AGE = 600
 OWNER_ACTIVATION_ENABLED = os.environ.get('OWNER_ACTIVATION_ENABLED', '0') == '1'
 PORTAL_ENABLED = os.environ.get('PORTAL_ENABLED', '1' if DEBUG else '0') == '1'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
@@ -16,8 +21,8 @@ if not SECRET_KEY:
     SECRET_KEY = 'local-development-only-not-for-deployment-' * 2
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Django provides authentication, sessions, CSRF and admin; academy holds domain workflows.
-INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'academy']
-MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'academy.middleware.LaunchGateMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'academy.middleware.PortalMiddleware']
+INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'django_otp', 'django_otp.plugins.otp_totp', 'academy']
+MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django_otp.middleware.OTPMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'academy.middleware.LaunchGateMiddleware', 'academy.middleware.PortalMiddleware', 'academy.mfa.OwnerMFAMiddleware']
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]

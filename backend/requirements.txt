@@ -2,3 +2,5 @@ Django==5.2.18
 gunicorn==23.0.0
 psycopg[binary]==3.3.6
 whitenoise==6.12.0
+django-otp==1.7.5
+qrcode==8.2

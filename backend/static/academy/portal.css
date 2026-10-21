@@ -291,3 +291,9 @@ footer a {
     grid-template-columns:1fr
   }
 }
+
+/* Security setup stays readable on phones; QR codes never overflow the card. */
+.brand small { color:#cad9e2; }
+.qr { width:240px; max-width:100%; height:auto; display:block; margin:20px auto; }
+.setup-key, .recovery-codes { overflow-wrap:anywhere; font-family:monospace; }
+.recovery-codes { line-height:2; padding:20px; background:#eef3f5; }

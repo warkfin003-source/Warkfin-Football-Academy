@@ -1,7 +1,7 @@
 """Route map for public health checks, account flows and permission-checked academy views."""
 from django.urls import path, include
 from django.contrib.auth import views as auth
-from academy import views
+from academy import views, mfa
 from academy.admin import site
 from academy.forms import EmailLoginForm
 from academy.owner_activation import OwnerActivationView
@@ -9,6 +9,9 @@ from academy.owner_activation import OwnerActivationView
 urlpatterns=[
     path('',views.dashboard,name='dashboard'),
     path('health/',views.health),
+    path('accounts/security/',mfa.security,name='owner-security'),
+    path('accounts/security/verify/',mfa.verify,name='owner-otp'),
+    path('accounts/security/recovery/',mfa.recovery,name='owner-recovery'),
     path('policies/',views.policies,name='policies'),
     path('admin/',site.urls),
     path('accounts/owner-activate/<uidb64>/<token>/', OwnerActivationView.as_view(), name='owner-activate'),

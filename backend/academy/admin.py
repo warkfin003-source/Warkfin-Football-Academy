@@ -1,5 +1,7 @@
 """Owner-only administration with audit events and restricted deletion/review operations."""
 from django.contrib import admin
+from django.shortcuts import redirect
+from .mfa import owner_verified
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Squad, Player, Application, TrainingSession, Announcement, AuditEvent
 
@@ -8,7 +10,9 @@ class OwnerAdminSite(admin.AdminSite):
     site_header='Warkfin Academy · Owner administration'
     site_title='Warkfin Academy'
     index_title='Academy management'
-    def has_permission(self,request): return request.user.is_active and request.user.is_superuser
+    def has_permission(self,request): return request.user.is_active and request.user.is_superuser and owner_verified(request)
+    def login(self, request, extra_context=None):
+        return redirect('/accounts/login/?next=/admin/')
 
 site=OwnerAdminSite(name='owner_admin')
 # Record permitted changes and disable routine deletion to preserve relationships.

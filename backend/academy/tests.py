@@ -9,7 +9,7 @@ from django.utils import timezone
 from .models import User, Player, Squad, Application, TrainingSession, Attendance, Availability, Feedback, Announcement, AuditEvent
 from .forms import ApplicationForm
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+@override_settings(OWNER_MFA_REQUIRED=False, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class PortalTests(TestCase):
     def setUp(self):
         self.owner=User.objects.create_superuser(username='owner@example.test',email='owner@example.test',password='Strong!Owner782',email_verified=True)

@@ -54,3 +54,7 @@ The pilot still requires actual email delivery testing, owner activation, owner 
 6. Confirm the intended Render deployment is live and verify its behavior before opening the portal.
 
 Keep comments focused on purpose, privacy rules and non-obvious decisions. Update comments when behavior changes.
+
+## Owner authentication update
+
+`academy/mfa.py` provides password-confirmed authenticator enrolment, locked TOTP verification, hashed one-use recovery codes and mandatory owner access checks. `OWNER_SETUP_ENABLED` admits owner preparation while player registration stays closed. See `RELEASE_STATUS.md` for actual deployment and recovery status.
