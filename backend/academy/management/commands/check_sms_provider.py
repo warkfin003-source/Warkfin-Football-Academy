@@ -4,6 +4,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from academy.sms_mfa import provider_failure
 
 class Command(BaseCommand):
     help = 'Check Brevo API access and SMS credit availability without sending SMS.'
@@ -24,6 +25,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f'SMS readiness: reported SMS credits = {sum(credits):g}. Sender approval and delivery still require verification.')
         except HTTPError as error:
-            self.stdout.write(f'SMS readiness: provider HTTP {error.code}; check key permissions and authorized IPs.')
+            reason, _ = provider_failure(error)
+            self.stdout.write(f'SMS readiness: provider HTTP {error.code}, reason={reason}.')
         except Exception:
             self.stdout.write('SMS readiness: provider check unavailable; no account details logged.')

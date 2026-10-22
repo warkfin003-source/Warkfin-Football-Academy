@@ -78,3 +78,19 @@ class SMSMFATests(TestCase):
         player = User.objects.create_user(username='player@sms.test', email='player@sms.test', password='test-private', email_verified=True)
         self.client.force_login(player)
         self.assertEqual(self.client.get(self.path).status_code, 403)
+
+    def test_confirmation_survives_refresh_without_claiming_delivery(self):
+        self.send()
+        page = self.client.get(self.path)
+        self.assertContains(page, 'SMS accepted for sending')
+        self.assertContains(page, 'Delivery to your phone has not yet been confirmed.')
+        self.assertContains(page, 'data-cooldown=')
+
+    def test_provider_diagnostics_do_not_echo_response_secrets(self):
+        from io import BytesIO
+        from urllib.error import HTTPError
+        from .sms_mfa import provider_failure
+        error = HTTPError('https://api.brevo.com', 403, 'Denied', {}, BytesIO(b'{"message":"unauthorized IP with private-key-123"}'))
+        reason, advice = provider_failure(error)
+        self.assertEqual(reason, 'server_ip_not_authorized')
+        self.assertNotIn('private-key', advice)

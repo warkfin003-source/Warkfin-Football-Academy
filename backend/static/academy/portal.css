@@ -297,3 +297,33 @@ footer a {
 .qr { width:240px; max-width:100%; height:auto; display:block; margin:20px auto; }
 .setup-key, .recovery-codes { overflow-wrap:anywhere; font-family:monospace; }
 .recovery-codes { line-height:2; padding:20px; background:#eef3f5; }
+
+/* SMS verification: restrained depth, clear states, and comfortable mobile controls. */
+.sms-panel { padding:0; overflow:hidden; max-width:580px; }
+.sms-banner { padding:30px; background:linear-gradient(135deg,#10283c,#185749); color:#fff; }
+.sms-banner .eyebrow { color:#f6dc99; margin:12px 0; }
+.sms-banner h1 { font-size:clamp(2rem,5vw,2.65rem); }
+.sms-banner p:last-child { margin-bottom:0; color:#e1efeb; }
+.sms-shield { display:grid; place-items:center; width:40px; height:44px; border:1px solid #e8cc84; border-radius:9px 9px 20px 20px; color:#f6dc99; font-weight:800; }
+.sms-body { padding:28px; }
+.sms-steps { display:flex; flex-wrap:wrap; gap:8px 18px; padding:0; list-style:none; font-size:.78rem; font-weight:700; color:#536d7b; }
+.sms-steps .complete { color:#146551; }
+.sms-steps [aria-current] { color:#152f42; }
+.sms-destination strong { display:block; font-size:1.25rem; letter-spacing:.09em; }
+.sms-status { padding:16px 18px; border:1px solid #d4e1e7; border-left:4px solid #617e8c; border-radius:10px; background:#f3f7f9; margin:20px 0; overflow-wrap:anywhere; }
+.sms-status p { margin:6px 0; font-size:.92rem; }
+.sms-success { background:#edf8f1; border-color:#b0d7bf; border-left-color:#187044; }
+.sms-error { background:#fff2f0; border-color:#efb9b1; border-left-color:#ac3428; }
+.sms-error strong { color:#8d271d; }
+.sms-body button { width:100%; }
+.sms-send { background:#e8cc84; color:#152f42; }
+.sms-send:hover { background:#d6b86b; }
+.sms-body button:disabled { opacity:.65; cursor:wait; }
+.sms-progress { margin:8px 0; font-size:.84rem; color:#536d7b; }
+.sms-code-section { border-top:1px solid #dbe5e9; margin-top:22px; padding-top:14px; }
+.sms-code-section input[name=token] { font-size:1.5rem; letter-spacing:.3em; text-align:center; font-variant-numeric:tabular-nums; }
+.sms-code-section small { margin-top:12px; }
+.sms-help { margin-top:22px; font-size:.9rem; }
+.sms-help summary { cursor:pointer; font-weight:650; padding:8px 0; }
+.sms-private { color:#536d7b; font-size:.8rem; margin-bottom:0; }
+@media(max-width:420px) { .sms-banner,.sms-body { padding:22px; } }

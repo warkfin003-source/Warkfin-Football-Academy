@@ -8,6 +8,7 @@ from datetime import timedelta
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from django import forms
+from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import render, redirect
@@ -20,6 +21,39 @@ logger = logging.getLogger(__name__)
 
 class SMSDeliveryError(Exception):
     """Safe errors contain no provider body, API credential or verification code."""
+
+
+def provider_failure(error):
+    """Classify bounded response content, but expose only fixed, safe descriptions."""
+    try:
+        raw = error.read(8192).decode('utf-8', errors='replace').lower()
+    except Exception:
+        raw = ''
+    if ('ip' in raw and any(word in raw for word in ('unauthorized', 'unrecognised', 'unrecognized', 'whitelist', 'authoriz'))):
+        reason = 'server_ip_not_authorized'
+        advice = 'Brevo has blocked this server address. Authorize the Render server in Brevo Security before trying again.'
+    elif any(word in raw for word in ('insufficient', 'not enough credit', 'no credit', 'credit balance')):
+        reason = 'sms_credits_required'
+        advice = 'Brevo SMS credits are unavailable. Add SMS credits in Brevo before requesting another code.'
+    elif 'sender' in raw:
+        reason = 'sender_not_approved'
+        advice = 'Brevo has not accepted the SMS sender. Check approval of Warkfin for Nigeria in Brevo.'
+    elif any(word in raw for word in ('not activated', 'not active', 'suspended', 'account is blocked', 'account has been blocked')):
+        reason = 'sms_account_inactive'
+        advice = 'Brevo sending is not active. Complete account activation or contact Brevo support.'
+    elif error.code == 401:
+        reason = 'api_authentication_rejected'
+        advice = 'Brevo rejected the API credentials. Check the server API key and authorized IP settings.'
+    elif error.code == 429:
+        reason = 'provider_rate_limit'
+        advice = 'Brevo is limiting requests. Please wait before requesting another code.'
+    elif error.code == 403:
+        reason = 'provider_access_denied'
+        advice = 'Brevo denied access (403). Check SMS permissions and server IP authorization in Brevo, or contact Brevo support.'
+    else:
+        reason = 'provider_request_rejected'
+        advice = 'The SMS provider rejected this request. Contact the academy owner for assistance.'
+    return reason, advice
 
 
 class SMSCodeForm(forms.Form):
@@ -60,8 +94,9 @@ def send_sms(code):
                 raise SMSDeliveryError('SMS provider did not accept this message.')
     except HTTPError as error:
         # Never log response bodies: some providers echo sensitive request values.
-        logger.warning('Owner SMS provider rejected request (HTTP %s).', error.code)
-        raise SMSDeliveryError('SMS could not be sent. Check Brevo SMS activation, sender approval, credits and authorized IPs.') from None
+        reason, advice = provider_failure(error)
+        logger.warning('Owner SMS provider rejected request: HTTP %s, reason=%s.', error.code, reason)
+        raise SMSDeliveryError(advice) from None
     except (URLError, TimeoutError, OSError):
         logger.warning('Owner SMS provider connection failed.')
         raise SMSDeliveryError('SMS service is temporarily unavailable. Please try again later.') from None
@@ -110,7 +145,7 @@ def sms_security(request):
                 # A later request must never be activated by an earlier response.
                 OwnerSMSChallenge.objects.filter(user=request.user, nonce=nonce).update(accepted=True)
                 AuditEvent.objects.create(actor=request.user, action='owner.sms_accepted', object_reference=f'user:{request.user.pk}')
-                notice = 'SMS requested. Enter the code when it arrives. It expires after five minutes.'
+                notice = 'Your SMS was accepted for sending. Enter the code when it reaches your phone.'
     elif request.method == 'POST':
         form = SMSCodeForm(request.POST)
         if form.is_valid():
@@ -133,9 +168,16 @@ def sms_security(request):
                         AuditEvent.objects.create(actor=request.user, action='owner.sms_verified', object_reference=f'user:{request.user.pk}')
                     challenge.save()
                     if valid:
+                        messages.success(request, 'Phone verified. You are securely signed in.')
                         return redirect('dashboard')
                 form.add_error('token', 'Code not accepted. It may be expired, already used, or locked after five attempts. Request a new code if needed.')
+    # Reconstruct status from server state, including on refresh; never infer delivery.
+    challenge = OwnerSMSChallenge.objects.filter(user=request.user).first()
+    browser_matches = bool(challenge and constant_time_compare(challenge.binding,
+        fingerprint(request.session.get('owner_sms_binding', ''))))
+    pending = bool(browser_matches and challenge.accepted and challenge.expires_at > now and challenge.attempts < 5)
+    cooldown = max(0, 60 - int((timezone.now() - challenge.sent_at).total_seconds())) if challenge and challenge.sent_at else 0
     return render(request, 'registration/sms_security.html', {
-        'form': form, 'notice': notice, 'error': error,
+        'form': form, 'notice': notice, 'error': error, 'pending': pending, 'cooldown': cooldown,
         'phone_suffix': settings.OWNER_SMS_PHONE[-4:],
     })
