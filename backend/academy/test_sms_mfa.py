@@ -59,7 +59,7 @@ class SMSMFATests(TestCase):
             self.assertEqual(delivery.call_count, 1)
         OwnerSMSChallenge.objects.filter(user=self.owner).update(sent_at=timezone.now()-timedelta(seconds=61), sends=10)
         with patch('academy.sms_mfa.send_sms') as delivery:
-            self.assertContains(self.client.post(self.path, {'action': 'send'}), 'Hourly SMS limit')
+            self.assertContains(self.client.post(self.path, {'action': 'send'}), 'Hourly verification-code limit')
             delivery.assert_not_called()
 
     def test_new_code_invalidates_old_and_phone_change_revokes_session(self):
@@ -94,3 +94,31 @@ class SMSMFATests(TestCase):
         reason, advice = provider_failure(error)
         self.assertEqual(reason, 'server_ip_not_authorized')
         self.assertNotIn('private-key', advice)
+
+    def test_email_uses_verified_account_and_shared_verification(self):
+        with patch('academy.sms_mfa.send_mail', return_value=1) as delivery:
+            self.client.post(self.path, {'action': 'send', 'channel': 'email', 'email': 'stranger@example.test'})
+        self.assertEqual(delivery.call_args.args[3], [self.owner.email])
+        import re
+        code = re.search(r'\b\d{6}\b', delivery.call_args.args[1]).group()
+        self.assertContains(self.client.get(self.path), 'Email accepted for sending')
+        response = self.client.post(self.path, {'token': code})
+        self.assertRedirects(response, '/', fetch_redirect_response=False)
+        self.assertEqual(self.client.get('/admin/').status_code, 200)
+        self.client.logout(); self.client.force_login(self.owner)
+        self.assertContains(self.client.post(self.path, {'token': code}), 'Code not accepted')
+
+    def test_switching_to_email_invalidates_previous_sms(self):
+        old = self.send()
+        OwnerSMSChallenge.objects.filter(user=self.owner).update(sent_at=timezone.now()-timedelta(seconds=61))
+        with patch('academy.sms_mfa.send_email_code') as delivery:
+            self.client.post(self.path, {'action': 'send', 'channel': 'email'})
+            code = delivery.call_args.args[1]
+        self.assertContains(self.client.post(self.path, {'token': old}), 'Code not accepted')
+        self.assertRedirects(self.client.post(self.path, {'token': code}), '/', fetch_redirect_response=False)
+
+    def test_email_failure_does_not_activate_challenge(self):
+        from .email_backend import EmailDeliveryError
+        with patch('academy.sms_mfa.send_mail', side_effect=EmailDeliveryError('Email not accepted')):
+            self.assertContains(self.client.post(self.path, {'action': 'send', 'channel': 'email'}), 'Email not accepted')
+        self.assertFalse(OwnerSMSChallenge.objects.get(user=self.owner).accepted)

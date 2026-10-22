@@ -93,3 +93,18 @@ registration remains closed until actual SMS delivery, owner access and the
 remaining release checks are completed. The original authenticator enrolment
 step above is superseded by password + SMS verification. SMS recovery is not
 implemented as an email bypass; lost-phone recovery requires private support.
+
+## Email alternative — 22 October 2026
+
+Owner verification now offers email or SMS after password authentication. Email
+codes are sent only to the already-verified account email; the form cannot change
+the recipient. Both methods share cooldowns, an hourly quota and one pending
+challenge so switching channels invalidates the earlier code. Codes include the
+channel and contact identity in the keyed digest. A change of account email
+invalidates existing verified sessions. This explicitly requested email option
+supersedes the earlier SMS-only recovery policy; it is not a password bypass.
+61 automated tests pass, including destination tampering, email delivery failure,
+single-use email verification and cross-channel invalidation. Startup diagnostics
+read recent ownerLogin delivery events without logging message content or secrets.
+SMS acceptance was recorded at 00:29 UTC after the owner's Brevo permission change;
+actual phone delivery is not implied. Public launch remains closed.

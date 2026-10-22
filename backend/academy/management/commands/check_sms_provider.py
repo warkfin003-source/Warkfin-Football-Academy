@@ -29,3 +29,42 @@ class Command(BaseCommand):
             self.stdout.write(f'SMS readiness: provider HTTP {error.code}, reason={reason}.')
         except Exception:
             self.stdout.write('SMS readiness: provider check unavailable; no account details logged.')
+        # Read delivery outcomes only for this owner's recent login texts. Never log
+        # reply bodies, message content, phone numbers, or raw provider responses.
+        from urllib.parse import urlencode
+        query = urlencode({'phoneNumber': settings.OWNER_SMS_PHONE.lstrip('+'), 'days': 2, 'limit': 10, 'sort': 'desc'})
+        request = Request('https://api.brevo.com/v3/transactionalSMS/statistics/events?' + query,
+            headers={'api-key': settings.BREVO_API_KEY, 'Accept': 'application/json'})
+        try:
+            with urlopen(request, timeout=15) as response:
+                events = json.loads(response.read(262144)).get('events', [])
+            shown = 0
+            for event in events:
+                if event.get('tag') != 'ownerLogin':
+                    continue
+                status = event.get('event')
+                if status not in {'accepted', 'sent', 'delivered', 'blocked', 'rejected', 'hardBounce', 'softBounce', 'hard_bounce', 'soft_bounce', 'bounces', 'failed'}:
+                    status = 'other'
+                reason = str(event.get('reason', '')).lower()
+                category = 'unspecified'
+                for words, label in [
+                    (('credit', 'balance'), 'sms_credits'),
+                    (('sender', 'registration'), 'sender_registration'),
+                    (('unreachable', 'absent', 'switched off'), 'recipient_unreachable'),
+                    (('invalid', 'unknown subscriber'), 'destination_rejected'),
+                    (('dnd', 'do not disturb', 'opted out'), 'recipient_restriction'),
+                    (('expired', 'expiry'), 'carrier_timeout')]:
+                    if any(word in reason for word in words):
+                        category = label
+                        break
+                self.stdout.write(f'Owner SMS delivery event: status={status}, reason={category}.')
+                shown += 1
+                if shown == 3:
+                    break
+            if not shown:
+                self.stdout.write('Owner SMS delivery: no matching recent event available.')
+        except HTTPError as error:
+            reason, _ = provider_failure(error)
+            self.stdout.write(f'Owner SMS delivery lookup: HTTP {error.code}, reason={reason}.')
+        except Exception:
+            self.stdout.write('Owner SMS delivery lookup unavailable.')

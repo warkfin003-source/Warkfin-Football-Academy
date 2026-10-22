@@ -62,7 +62,7 @@
     button.disabled = true;
     button.textContent = 'Sending request…';
     sendForm.setAttribute('aria-busy', 'true');
-    status.textContent = 'Contacting the SMS provider. Please keep this page open.';
+    status.textContent = 'Contacting the delivery provider. Please keep this page open.';
   });
   const verify = document.querySelector('[data-sms-verify]');
   verify?.addEventListener('submit', () => {

@@ -327,3 +327,7 @@ footer a {
 .sms-help summary { cursor:pointer; font-weight:650; padding:8px 0; }
 .sms-private { color:#536d7b; font-size:.8rem; margin-bottom:0; }
 @media(max-width:420px) { .sms-banner,.sms-body { padding:22px; } }
+
+/* Email addresses wrap without widening the verification card on phones. */
+.sms-destination strong { font-size:1rem; letter-spacing:normal; overflow-wrap:anywhere; }
+.sms-send { margin-top:14px; }

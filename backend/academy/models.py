@@ -144,3 +144,5 @@ class OwnerSMSChallenge(models.Model):
     sends = models.PositiveSmallIntegerField(default=0)
     attempts = models.PositiveSmallIntegerField(default=0)
     accepted = models.BooleanField(default=False)
+    # One challenge shared across both delivery methods; changing method invalidates the old code.
+    channel = models.CharField(max_length=5, default="sms", choices=[("sms", "SMS"), ("email", "Email")])

@@ -11,6 +11,8 @@ from django import forms
 from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
+from django.core.mail import send_mail
+from .email_backend import EmailDeliveryError
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils.crypto import salted_hmac, constant_time_compare
@@ -57,7 +59,7 @@ def provider_failure(error):
 
 
 class SMSCodeForm(forms.Form):
-    token = forms.RegexField(regex=r'^\d{6}$', label='Six-digit SMS code',
+    token = forms.RegexField(regex=r'^\d{6}$', label='Six-digit verification code',
         widget=forms.TextInput(attrs={'inputmode': 'numeric', 'autocomplete': 'one-time-code', 'maxlength': '6'}))
 
 
@@ -67,7 +69,7 @@ def fingerprint(value):
 
 
 def identity(request):
-    return fingerprint(f'{request.user.pk}:{settings.OWNER_SMS_PHONE}')
+    return fingerprint(f'{request.user.pk}:{settings.OWNER_SMS_PHONE}:{request.user.email.lower()}')
 
 
 def sms_verified(request):
@@ -102,6 +104,25 @@ def send_sms(code):
         raise SMSDeliveryError('SMS service is temporarily unavailable. Please try again later.') from None
 
 
+def send_email_code(user, code):
+    """Deliver only to the verified account email, never a submitted destination."""
+    if not user.email_verified or not user.email:
+        raise SMSDeliveryError('A verified account email is required.')
+    try:
+        sent = send_mail('Your Warkfin Academy sign-in code',
+            f'Your sign-in code is {code}. It expires in five minutes.\n\n'
+            'Enter it only on your Warkfin Academy portal. Never share this code.\n'
+            'If you did not request it, do not use the code and contact the academy owner.',
+            settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+        if sent != 1:
+            raise SMSDeliveryError('The email provider did not accept your message. Please try again later.')
+    except EmailDeliveryError as error:
+        # Our email transport produces fixed safe diagnostics without credentials.
+        raise SMSDeliveryError(str(error)) from None
+    except (OSError, TimeoutError):
+        raise SMSDeliveryError('Email delivery is temporarily unavailable. Please try again later.') from None
+
+
 def sms_security(request):
     """Called only through the active, email-verified owner decorator in mfa.py."""
     if sms_verified(request):
@@ -110,6 +131,9 @@ def sms_security(request):
     notice = ''
     error = ''
     now = timezone.now()
+    channel = request.POST.get('channel', 'sms') if request.method == 'POST' else 'email'
+    if channel not in {'sms', 'email'}:
+        channel = 'email'
     if request.method == 'POST' and request.POST.get('action') == 'send':
         # Serialize per owner so concurrent browsers cannot bypass quotas.
         with transaction.atomic():
@@ -121,14 +145,15 @@ def sms_security(request):
                 if not challenge.window_at or now - challenge.window_at >= timedelta(hours=1):
                     challenge.window_at, challenge.sends = now, 0
                 if challenge.sends >= 10:
-                    error = 'Hourly SMS limit reached. Please try again later.'
+                    error = 'Hourly verification-code limit reached. Please try again later.'
                 else:
                     code = f'{secrets.randbelow(1000000):06d}'
                     binding = secrets.token_urlsafe(32)
                     nonce = secrets.token_hex(24)
                     challenge.nonce = nonce
+                    challenge.channel = channel
                     challenge.binding = fingerprint(binding)
-                    challenge.digest = fingerprint(f'{nonce}:{code}:{identity(request)}')
+                    challenge.digest = fingerprint(f'{nonce}:{code}:{channel}:{identity(request)}')
                     challenge.expires_at = now + timedelta(minutes=5)
                     challenge.sent_at, challenge.attempts = now, 0
                     challenge.sends += 1
@@ -137,15 +162,18 @@ def sms_security(request):
                     request.session['owner_sms_binding'] = binding
         if not error:
             try:
-                send_sms(code)
+                if channel == 'email':
+                    send_email_code(request.user, code)
+                else:
+                    send_sms(code)
             except SMSDeliveryError as failure:
                 error = str(failure)
-                AuditEvent.objects.create(actor=request.user, action='owner.sms_send_failed', object_reference=f'user:{request.user.pk}')
+                AuditEvent.objects.create(actor=request.user, action=f'owner.{channel}_send_failed', object_reference=f'user:{request.user.pk}')
             else:
                 # A later request must never be activated by an earlier response.
                 OwnerSMSChallenge.objects.filter(user=request.user, nonce=nonce).update(accepted=True)
-                AuditEvent.objects.create(actor=request.user, action='owner.sms_accepted', object_reference=f'user:{request.user.pk}')
-                notice = 'Your SMS was accepted for sending. Enter the code when it reaches your phone.'
+                AuditEvent.objects.create(actor=request.user, action=f'owner.{channel}_accepted', object_reference=f'user:{request.user.pk}')
+                notice = 'Your email was accepted for sending. Check your inbox and spam folder.' if channel == 'email' else 'Your SMS was accepted for sending. Enter the code when it reaches your phone.'
     elif request.method == 'POST':
         form = SMSCodeForm(request.POST)
         if form.is_valid():
@@ -157,7 +185,7 @@ def sms_security(request):
                 if eligible:
                     challenge.attempts += 1
                     valid = constant_time_compare(challenge.digest,
-                        fingerprint(f"{challenge.nonce}:{form.cleaned_data['token']}:{identity(request)}"))
+                        fingerprint(f"{challenge.nonce}:{form.cleaned_data['token']}:{challenge.channel}:{identity(request)}"))
                     if valid:
                         challenge.accepted = False
                         challenge.digest = ''
@@ -165,10 +193,10 @@ def sms_security(request):
                         request.session['owner_sms_verified'] = identity(request)
                         request.session['owner_mfa_at'] = time.time()
                         request.session.pop('owner_sms_binding', None)
-                        AuditEvent.objects.create(actor=request.user, action='owner.sms_verified', object_reference=f'user:{request.user.pk}')
+                        AuditEvent.objects.create(actor=request.user, action=f'owner.{challenge.channel}_verified', object_reference=f'user:{request.user.pk}')
                     challenge.save()
                     if valid:
-                        messages.success(request, 'Phone verified. You are securely signed in.')
+                        messages.success(request, 'Verification complete. You are securely signed in.')
                         return redirect('dashboard')
                 form.add_error('token', 'Code not accepted. It may be expired, already used, or locked after five attempts. Request a new code if needed.')
     # Reconstruct status from server state, including on refresh; never infer delivery.
@@ -179,5 +207,6 @@ def sms_security(request):
     cooldown = max(0, 60 - int((timezone.now() - challenge.sent_at).total_seconds())) if challenge and challenge.sent_at else 0
     return render(request, 'registration/sms_security.html', {
         'form': form, 'notice': notice, 'error': error, 'pending': pending, 'cooldown': cooldown,
-        'phone_suffix': settings.OWNER_SMS_PHONE[-4:],
+        'phone_suffix': settings.OWNER_SMS_PHONE[-4:], 'email_address': request.user.email,
+        'channel': channel, 'pending_channel': challenge.channel if pending else channel,
     })
