@@ -9,6 +9,16 @@ import os
 
 def on_starting(server):
     """Attempt the private invitation only when the operator enables both flags."""
+    # Optional read-only readiness check: no messages, purchases or secrets in logs.
+    if os.environ.get('OWNER_MFA_METHOD') == 'sms':
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+        try:
+            import django
+            django.setup()
+            from django.core.management import call_command
+            call_command('check_sms_provider')
+        except Exception:
+            server.log.warning('SMS readiness check unavailable; web server will continue.')
     if os.environ.get('OWNER_INVITE_ON_START') != '1':
         return
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')

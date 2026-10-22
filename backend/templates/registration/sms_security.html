@@ -1,0 +1,12 @@
+{% extends 'base.html' %}{% block title %}SMS verification · Warkfin Academy{% endblock %}{% block content %}
+{# Only the final four digits are shown; recipients cannot be edited at login. #}
+<section class="panel narrow"><p class="eyebrow">Owner account protection</p>
+<h1>Verify by text message.</h1>
+<p>Receive a six-digit sign-in code on your phone ending in <strong>{{ phone_suffix }}</strong>. No authenticator app or QR code is needed.</p>
+{% if notice %}<p role="status">{{ notice }}</p>{% endif %}
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="send"><button>Send SMS code</button></form>
+<p>Codes expire after five minutes. Wait at least 60 seconds before requesting another. Only the newest code works in the browser that requested it.</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="verify">{{ form.as_p }}<button>Verify and continue</button></form>
+<p>Never share your code. If you lose access to your phone, contact support for private account recovery.</p>
+</section>{% endblock %}

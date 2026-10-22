@@ -72,3 +72,24 @@ and sessions; scheduling this remains an operations task on the free host.
 MFA loss requires a saved recovery code plus the password. There is intentionally
 no email-only MFA bypass. Review recovery procedures privately if all codes and
 the authenticator are lost.
+
+
+## SMS revision — 22 October 2026
+
+At the owner's request, deployment uses OWNER_MFA_METHOD=sms. The confirmed
+phone is set privately in OWNER_SMS_PHONE on Render, never accepted from a login
+form. The authenticator and QR setup are bypassed in SMS mode without bypassing
+second-factor verification. Existing TOTP records are retained, not deleted.
+SMS codes expire in five minutes, are browser-bound, keyed-hashed, single-use,
+and limited to five verification attempts. Sends have a 60-second cooldown and
+10-per-hour limit, including provider failures. Brevo accepts messages via its
+transactional SMS API. Acceptance does not prove delivery. Sender Warkfin must
+be approved for Nigeria and sufficient SMS credits must be available. No paid
+credits are purchased automatically. Startup checks read account credit status
+without sending messages or exposing personal account information.
+
+56 automated tests pass, including six SMS security regression tests. Public
+registration remains closed until actual SMS delivery, owner access and the
+remaining release checks are completed. The original authenticator enrolment
+step above is superseded by password + SMS verification. SMS recovery is not
+implemented as an email bypass; lost-phone recovery requires private support.

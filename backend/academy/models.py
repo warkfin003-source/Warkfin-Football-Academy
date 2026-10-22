@@ -130,3 +130,17 @@ class OwnerRecoveryCode(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     digest = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class OwnerSMSChallenge(models.Model):
+    """One pending owner challenge; codes and browser bindings are never plaintext."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    digest = models.CharField(max_length=64, blank=True)
+    binding = models.CharField(max_length=64, blank=True)
+    nonce = models.CharField(max_length=64, blank=True)
+    expires_at = models.DateTimeField(null=True)
+    sent_at = models.DateTimeField(null=True)
+    window_at = models.DateTimeField(null=True)
+    sends = models.PositiveSmallIntegerField(default=0)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    accepted = models.BooleanField(default=False)

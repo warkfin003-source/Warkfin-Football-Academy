@@ -40,6 +40,9 @@ class RecoveryForm(forms.Form):
 
 def owner_verified(request):
     """Only a verified device in this session grants owner privileges."""
+    if settings.OWNER_MFA_REQUIRED and settings.OWNER_MFA_METHOD == 'sms':
+        from .sms_mfa import sms_verified
+        return sms_verified(request)
     if not settings.OWNER_MFA_REQUIRED:
         return True
     return bool(request.user.is_authenticated and request.user.is_verified() and
@@ -55,7 +58,7 @@ class OwnerMFAMiddleware:
         if request.user.is_authenticated and request.user.is_superuser and not owner_verified(request):
             allowed = request.path in {'/accounts/login/', '/accounts/logout/', '/health/'} or request.path.startswith('/accounts/security/')
             if not allowed:
-                return redirect('owner-otp' if TOTPDevice.objects.filter(user=request.user, confirmed=True).exists() else 'owner-security')
+                return redirect('owner-security') if settings.OWNER_MFA_METHOD == 'sms' else redirect('owner-otp' if TOTPDevice.objects.filter(user=request.user, confirmed=True).exists() else 'owner-security')
         return self.get_response(request)
 
 
@@ -93,6 +96,9 @@ def recovery_page(request, codes):
 @require_http_methods(['GET', 'POST'])
 def security(request):
     """Initial enrolment requires the password and proof from the new device."""
+    if settings.OWNER_MFA_METHOD == 'sms':
+        from .sms_mfa import sms_security
+        return sms_security(request)
     confirmed = TOTPDevice.objects.filter(user=request.user, confirmed=True).first()
     if confirmed:
         if not owner_verified(request):
@@ -158,6 +164,8 @@ def security(request):
 @owner_only
 @require_http_methods(['GET', 'POST'])
 def verify(request):
+    if settings.OWNER_MFA_METHOD == 'sms':
+        return security(request)
     if owner_verified(request):
         return redirect('dashboard')
     device = TOTPDevice.objects.filter(user=request.user, confirmed=True).first()
@@ -178,6 +186,8 @@ def verify(request):
 @require_http_methods(['GET', 'POST'])
 def recovery(request):
     """A recovery code supplements a valid password; it never replaces it."""
+    if settings.OWNER_MFA_METHOD == 'sms':
+        return redirect('owner-security')
     device = TOTPDevice.objects.filter(user=request.user, confirmed=True).first()
     if not device:
         return redirect('owner-security')

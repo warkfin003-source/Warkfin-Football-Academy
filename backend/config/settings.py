@@ -86,3 +86,8 @@ if os.environ.get('TRUST_HTTPS_PROXY') == '1':
 DATA_UPLOAD_MAX_MEMORY_SIZE = 262144
 PASSWORD_RESET_TIMEOUT = 3600
 OWNER_LOGIN_EMAIL = os.environ.get('OWNER_LOGIN_EMAIL', '').strip().lower()
+
+# Owner SMS destination is server-controlled; login forms cannot change it.
+OWNER_MFA_METHOD = os.environ.get('OWNER_MFA_METHOD', 'totp')
+OWNER_SMS_PHONE = os.environ.get('OWNER_SMS_PHONE', '').strip()
+OWNER_SMS_SENDER = os.environ.get('OWNER_SMS_SENDER', 'Warkfin')
