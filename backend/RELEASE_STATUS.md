@@ -1,3 +1,30 @@
+# Initial registration release — 23 October 2026
+
+This current status supersedes the historical opening instructions below.
+
+- Owner password + email-code verification succeeded on 22 October at 14:12 UTC.
+- Render deploy `dep-dbd1lrl9fdbs73a7hcag` is live with `PORTAL_ENABLED=1`
+  and `OWNER_SETUP_ENABLED=0`; activation and startup invitations remain disabled.
+- The public `/accounts/register/` page was verified in the browser on 23 October:
+  email, password, confirmation and Create account are visible after host wake-up.
+- Initial player onboarding is open. A complete new-player production submission,
+  verification-email round trip and owner approval have not yet been checked.
+- The existing code passed 61 automated tests before deployment. No application
+  code changed during this status verification. Full mobile visual QA remains open.
+- SMS delivery is unconfirmed. Use the verified email-code option for owner login.
+- Fresh snapshot creation hit the Neon snapshot limit. A separate no-compute
+  recovery branch `br-green-bread-b9dhol4h` was created from the live branch at
+  22 October 14:16 UTC. It is a one-time checkpoint, not scheduled backup.
+- Scheduled backups and routine cleanup scheduling remain outstanding. This is
+  initial use, not a declaration that every production-readiness item is complete.
+- Public academy navigation integration and the backend PR merge remain pending.
+
+Players create an account, verify their email, submit their application and await
+owner review. Do not automatically assign coach privileges, squads or directory
+identities. Individual attendance and coaching feedback stay private.
+
+## Historical release notes
+
 # Owner preparation release — 21 October 2026
 
 ## Verified
