@@ -91,3 +91,12 @@ OWNER_LOGIN_EMAIL = os.environ.get('OWNER_LOGIN_EMAIL', '').strip().lower()
 OWNER_MFA_METHOD = os.environ.get('OWNER_MFA_METHOD', 'totp')
 OWNER_SMS_PHONE = os.environ.get('OWNER_SMS_PHONE', '').strip()
 OWNER_SMS_SENDER = os.environ.get('OWNER_SMS_SENDER', 'Warkfin')
+
+# Keep collections closed until merchant approval, sandbox tests and terms are complete.
+PALMPAY_ENABLED = os.getenv('PALMPAY_ENABLED', '0') == '1'
+PALMPAY_APP_ID = os.getenv('PALMPAY_APP_ID', '')
+PALMPAY_PRIVATE_KEY = os.getenv('PALMPAY_PRIVATE_KEY', '')
+PALMPAY_PUBLIC_KEY = os.getenv('PALMPAY_PUBLIC_KEY', '')
+PALMPAY_BASE_URL = os.getenv('PALMPAY_BASE_URL', 'https://open-gw-sandbox.palmpay-inc.com')
+PALMPAY_CHECKOUT_HOSTS = os.getenv('PALMPAY_CHECKOUT_HOSTS', '').split(',')
+PAYMENT_TERMS = os.getenv('PAYMENT_TERMS', '')

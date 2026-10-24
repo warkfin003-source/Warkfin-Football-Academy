@@ -6,7 +6,7 @@ from django.core import mail, signing
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
-from .models import User, Player, Squad, Application, TrainingSession, Attendance, Availability, Feedback, Announcement, AuditEvent
+from .models import User, Player, Squad, Application, TrainingSession, Attendance, Availability, Feedback, Announcement, AuditEvent, PaymentOrder
 from .forms import ApplicationForm
 
 @override_settings(OWNER_MFA_REQUIRED=False, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
@@ -28,6 +28,7 @@ class PortalTests(TestCase):
         data.update(changes);return data
     def applicant(self,email='applicant@example.test',verified=True):
         user=User.objects.create_user(username=email,email=email,password='Applicant!Unique765',email_verified=verified)
+        PaymentOrder.objects.create(user=user,purpose='registration',amount_kobo=500000,status='paid',paid_at=timezone.now())
         return Application.objects.create(user=user,**self.data())
     def test_anonymous_cannot_access_dashboard_or_coach_records(self):
         self.assertEqual(self.client.get('/').status_code,302)

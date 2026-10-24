@@ -146,3 +146,78 @@ class OwnerSMSChallenge(models.Model):
     accepted = models.BooleanField(default=False)
     # One challenge shared across both delivery methods; changing method invalidates the old code.
     channel = models.CharField(max_length=5, default="sms", choices=[("sms", "SMS"), ("email", "Email")])
+
+
+class CoachProfile(models.Model):
+    """Public coaching identity; this never grants account permissions."""
+    name = models.CharField(max_length=160)
+    nickname = models.CharField(max_length=60, unique=True)
+    active = models.BooleanField(default=True)
+    def __str__(self): return f'{self.name} ({self.nickname})'
+
+
+class PaymentOrder(models.Model):
+    """Server-priced collection order. Only verified provider results can settle it."""
+    import uuid
+    reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    purpose = models.CharField(max_length=20, choices=[('registration','Registration'),('dues','Monthly dues')])
+    amount_kobo = models.PositiveIntegerField()
+    start_month = models.DateField(null=True, blank=True)
+    months = models.PositiveSmallIntegerField(default=0)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending','Pending'),('paid','Paid'),('failed','Failed'),('closed','Closed')])
+    provider_reference = models.CharField(max_length=80, null=True, blank=True, unique=True)
+    checkout_url = models.URLField(max_length=2000, blank=True)
+    payer_name = models.CharField(max_length=160, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    @property
+    def amount_naira(self): return self.amount_kobo // 100
+
+
+class DuesMonth(models.Model):
+    """A distinct paid calendar month; uniqueness prevents double credit."""
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    month = models.DateField()
+    payment = models.ForeignKey(PaymentOrder, on_delete=models.PROTECT, related_name='covered_months')
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user','month'],name='unique_paid_month')]
+        ordering = ['month']
+
+
+class AcademyEvent(models.Model):
+    """Owner-published calendar items, with optional private recipient or squad."""
+    title = models.CharField(max_length=160)
+    kind = models.CharField(max_length=20, choices=[('news','News'),('training','Training'),('course','Course'),('appointment','Appointment')])
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    location = models.CharField(max_length=200, blank=True)
+    details = models.TextField(max_length=3000, blank=True)
+    squad = models.ForeignKey(Squad, null=True, blank=True, on_delete=models.PROTECT)
+    recipient = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
+    published = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+    def clean(self):
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError('The end must be after the start.')
+    def __str__(self): return self.title
+
+
+class AppointmentRequest(models.Model):
+    """A request is not a confirmed coach appointment; owner publishes accepted events."""
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    coach = models.ForeignKey(CoachProfile, on_delete=models.PROTECT)
+    requested_at = models.DateTimeField()
+    topic = models.CharField(max_length=250)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending','Pending'),('confirmed','Confirmed'),('declined','Declined')])
+    reply = models.CharField(max_length=500, blank=True)
+    event = models.OneToOneField(AcademyEvent, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class NotificationRead(models.Model):
+    """Personal read marker, without copying another user's private information."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    key = models.CharField(max_length=100)
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user','key'],name='unique_notification_read')]

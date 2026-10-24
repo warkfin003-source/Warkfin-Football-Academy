@@ -74,3 +74,6 @@
   // Restore usable buttons when the browser returns a page from its back cache.
   window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 })();
+
+// The browser print dialog can save the private receipt as a PDF.
+document.querySelectorAll('[data-print]').forEach(button=>button.addEventListener('click',()=>window.print()));

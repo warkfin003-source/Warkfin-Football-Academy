@@ -1,12 +1,22 @@
 """Route map for public health checks, account flows and permission-checked academy views."""
 from django.urls import path, include
 from django.contrib.auth import views as auth
-from academy import views, mfa
+from academy import views, mfa, member_views
 from academy.admin import site
 from academy.forms import EmailLoginForm
 from academy.owner_activation import OwnerActivationView
 
 urlpatterns=[
+    path('payments/',member_views.billing,name='billing'),
+    path('payments/checkout/',member_views.checkout,name='checkout'),
+    path('payments/palmpay/notify/',member_views.payment_callback,name='payment-callback'),
+    path('payments/<int:pk>/check/',member_views.refresh_payment,name='payment-check'),
+    path('payments/<int:pk>/receipt/',member_views.receipt,name='receipt'),
+    path('acceptance/',member_views.acceptance,name='acceptance'),
+    path('calendar/',member_views.calendar_page,name='calendar'),
+    path('calendar/<str:kind>/<int:pk>.ics',member_views.calendar_export,name='calendar-export'),
+    path('notifications/',member_views.notifications,name='notifications'),
+    path('coaches/',member_views.coaches,name='coaches'),
     path('',views.dashboard,name='dashboard'),
     path('health/',views.health),
     path('accounts/security/',mfa.security,name='owner-security'),

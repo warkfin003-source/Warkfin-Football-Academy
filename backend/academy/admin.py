@@ -57,3 +57,36 @@ site.register(Player,PlayerAdmin)
 site.register(Application,ApplicationAdmin)
 site.register(AuditEvent,AuditAdmin)
 for model in (Squad,TrainingSession,Announcement): site.register(model,LoggedAdmin)
+
+# Financial records are immutable in admin; the gateway owns payment status.
+from .models import CoachProfile, PaymentOrder, DuesMonth, AcademyEvent, AppointmentRequest
+class PaymentAdmin(AuditAdmin):
+    list_display=('created_at','user','purpose','amount_kobo','status')
+    readonly_fields=tuple(f.name for f in PaymentOrder._meta.fields)
+    list_filter=('status','purpose')
+class DuesAdmin(AuditAdmin):
+    list_display=('user','month','payment')
+    readonly_fields=tuple(f.name for f in DuesMonth._meta.fields)
+class AppointmentAdmin(LoggedAdmin):
+    list_display=('user','coach','requested_at','status')
+    readonly_fields=('user','coach','requested_at','topic','created_at','event')
+    def has_add_permission(self,request): return False
+    def save_model(self,request,obj,form,change):
+        # Confirmation publishes a private one-hour calendar event for this player only.
+        from datetime import timedelta
+        from django.utils import timezone
+        from django.core.exceptions import ValidationError
+        previous=AppointmentRequest.objects.get(pk=obj.pk)
+        super().save_model(request,obj,form,change)
+        if obj.status=='confirmed' and not obj.event_id:
+            obj.event = AcademyEvent.objects.create(title=f'Coach appointment · {obj.coach.nickname}',kind='appointment',
+                starts_at=obj.requested_at,ends_at=obj.requested_at+timedelta(hours=1),
+                details='Confirm the meeting point with the academy before travelling.',recipient=obj.user,published=True)
+            obj.save(update_fields=['event'])
+        elif obj.event_id:
+            AcademyEvent.objects.filter(pk=obj.event_id).update(published=obj.status=='confirmed')
+site.register(PaymentOrder,PaymentAdmin)
+site.register(DuesMonth,DuesAdmin)
+site.register(CoachProfile,LoggedAdmin)
+site.register(AcademyEvent,LoggedAdmin)
+site.register(AppointmentRequest,AppointmentAdmin)

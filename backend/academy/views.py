@@ -59,7 +59,8 @@ def signup(request):
             logging.getLogger(__name__).error('Verification delivery failed for user id %s',user.pk)
             messages.warning(request,'Account created, but email delivery failed. Use Resend verification or contact the academy.')
         return redirect('dashboard')
-    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account'})
+    from .payments import ready
+    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account','registration_notice':True,'payment_ready':ready()})
 
 # Require a CSRF-protected POST; middleware rate-limits account endpoints.
 @login_required
@@ -93,6 +94,10 @@ def application(request):
         return render(request,'notice.html',{'title':'Application reviewed','text':'Contact the coordinator to correct your approved profile or discuss your application.'})
     form=ApplicationForm(request.POST or None,instance=existing)
     if request.method=='POST' and form.is_valid():
+        from .payments import registration_paid
+        if not registration_paid(request.user):
+            messages.warning(request,'Pay the ₦5,000 registration fee before submitting your application. Your account remains available.')
+            return redirect('billing')
         obj=form.save(commit=False);obj.user=request.user;obj.status='pending';obj.review_note='';obj.save()
         audit(request.user,'application.submitted',obj)
         messages.success(request,'Application submitted for owner review.')
@@ -103,7 +108,8 @@ def application(request):
 @login_required
 def dashboard(request):
     user=request.user
-    context={'application':Application.objects.filter(user=user).first()}
+    from .payments import registration_paid
+    context={'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}
     if user.is_superuser:
         context.update(role='Owner',applications=Application.objects.filter(status='pending'),players=Player.objects.select_related('squad').all(),sessions=TrainingSession.objects.order_by('-starts_at')[:20])
     elif user.email_verified and user.coached_squads.exists():
@@ -135,6 +141,10 @@ def review(request,pk):
             if not obj.user.email_verified: return HttpResponseForbidden('Applicant must verify their email first.')
             decision=form.cleaned_data['decision']
             if decision=='approved':
+                from .payments import registration_paid
+                if not registration_paid(obj.user):
+                    messages.error(request,'Registration payment has not been verified. Approval is blocked.')
+                    return redirect('review',pk=pk)
                 squad=Squad.objects.select_for_update().get(pk=form.cleaned_data['squad'].pk)
                 chosen=form.cleaned_data['existing_player']
                 if chosen:

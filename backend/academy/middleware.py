@@ -11,7 +11,7 @@ from .models import RateBucket
 class PortalMiddleware:
     def __init__(self, get_response): self.get_response=get_response
     def __call__(self, request):
-        if request.method=='POST' and (request.path.startswith('/accounts/') or request.path=='/admin/login/'):
+        if request.method=='POST' and (request.path.startswith('/accounts/') or request.path=='/admin/login/' or (request.path.startswith('/payments/') and request.path!='/payments/palmpay/notify/')):
             # REMOTE_ADDR must be set by a trusted ingress. Do not trust client X-Forwarded-For.
             now=timezone.now()
             keys=[('ip',request.META.get('REMOTE_ADDR','unknown'),30)]
