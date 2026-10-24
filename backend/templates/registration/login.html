@@ -1,0 +1,2 @@
+{# Email sign-in form; credentials are handled by Django authentication. #}
+{% extends 'base.html' %}{% block content %}<section class="panel narrow"><p class="eyebrow">Your academy. Your progress.</p><h1>Welcome back.</h1><p>Sign in to your private academy dashboard.</p><form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button>Sign in</button></form><p><a href="{% url 'password_reset' %}">Forgot your password?</a></p><p>New to the academy? <a href="{% url 'signup' %}">Create an account</a>.</p></section>{% endblock %}

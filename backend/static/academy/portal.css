@@ -1,0 +1,333 @@
+/* Shared academy typography and base colours. Relative sizes support browser text scaling. */
+:root {
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#152f42;
+  background:#eef3f5;
+  font-size:16px;
+  line-height:1.6
+}
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0
+}
+a {
+  color:#146551;
+  text-underline-offset:4px
+}
+/* Brand header and wrapping navigation; the crest never shrinks on narrow screens. */
+header {
+  background:#10283c;
+  color:white;
+  padding:22px max(5vw,20px);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:24px;
+  border-top:4px solid #d7b86e
+}
+header a {
+  color:#f6dc99
+}
+nav {
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-wrap:wrap
+}
+nav form {
+  margin:0
+}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-decoration:none;
+  font-weight:850;
+  letter-spacing:.1em;
+  color:#fff
+}
+.brand small {
+  display:block;
+  font-size:10px;
+  letter-spacing:.12em
+}
+.crest {
+  display:grid;
+  place-items:center;
+  width:52px;
+  height:62px;
+  border:2px solid #d7b86e;
+  border-radius:8px 8px 25px 25px;
+  color:#f6dc99;
+  font-size:24px;
+  flex-shrink:0
+}
+/* Constrain reading width and keep content clear of page edges. */
+main {
+  max-width:1240px;
+  margin:auto;
+  padding:36px 24px 64px;
+  min-height:70vh
+}
+/* Hero depth uses layered shadows and gradients, with no external image dependency. */
+.hero {
+  padding:clamp(25px,4vw,48px);
+  border-radius:22px;
+  background:linear-gradient(125deg,#10283c,#1a554e);
+  color:white;
+  box-shadow:0 7px 0 #071c2b,0 18px 32px #173c4c20;
+  margin-bottom:32px
+}
+.eyebrow {
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:.75rem;
+  font-weight:800;
+  color:#14745b
+}
+.hero .eyebrow {
+  color:#f6dc99
+}
+h1 {
+  font-size:clamp(1.8rem,4vw,2.8rem);
+  line-height:1.15;
+  margin:12px 0 20px
+}
+h2 {
+  font-size:1.35rem;
+  margin-top:0
+}
+h3 {
+  font-size:1.05rem
+}
+/* Reusable raised content panels and responsive content grids. */
+.panel {
+  background:#fff;
+  border:1px solid #dbe5e9;
+  border-radius:18px;
+  padding:28px;
+  box-shadow:0 5px 0 #dce5e9,0 14px 26px #173c4c09;
+  margin-bottom:28px;
+  min-width:0
+}
+.narrow {
+  max-width:700px;
+  margin:20px auto
+}
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px
+}
+.grid .panel {
+  margin:0 0 24px
+}
+.chips {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap
+}
+.chips span,.badge {
+  padding:6px 12px;
+  border:1px solid #ffffff50;
+  border-radius:8px
+}
+/* Accessible form controls inherit the page font and retain a minimum usable size. */
+.field {
+  margin:0 0 20px
+}
+label {
+  display:block;
+  font-weight:650;
+  margin-bottom:6px
+}
+input,select,textarea {
+  width:100%;
+  max-width:100%;
+  border:1px solid #9eb4be;
+  border-radius:8px;
+  padding:12px;
+  font:inherit;
+  background:#fbfdfe;
+  color:#152f42
+}
+input[type=checkbox] {
+  width:22px;
+  height:22px
+}
+small,.helptext {
+  display:block;
+  color:#536d7b;
+  font-size:.84rem
+}
+/* Shared buttons and link-buttons; use high-contrast text and touch-friendly targets. */
+button,.button {
+  display:inline-block;
+  border:0;
+  border-radius:9px;
+  padding:12px 20px;
+  font:inherit;
+  font-weight:750;
+  background:#146551;
+  color:white;
+  cursor:pointer;
+  text-decoration:none;
+  min-height:44px
+}
+.quiet {
+  background:#ffffff10;
+  color:white;
+  border:1px solid #ffffff55
+}
+button:hover,.button:hover {
+  background:#0a4b3b
+}
+.errorlist {
+  color:#a32222;
+  padding-left:20px
+}
+.message {
+  background:#e2f0e9;
+  border-left:4px solid #146551;
+  padding:16px;
+  border-radius:6px
+}
+.entry {
+  border-top:1px solid #dbe5e9;
+  margin-top:18px;
+  padding-top:18px
+}
+/* Directory cards are a staff presentation, not a public performance ranking. */
+.player-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px
+}
+.player-card {
+  border:1px solid #d7e3e7;
+  padding:18px;
+  border-radius:12px;
+  display:block;
+  text-decoration:none;
+  background:#f7fafb
+}
+.player-card strong {
+  display:block
+}
+.number {
+  font-size:.8rem;
+  color:#647985
+}
+dt {
+  font-weight:750
+}
+dd {
+  margin:0 0 15px;
+  overflow-wrap:anywhere
+}
+/* Footer contrast and keyboard navigation affordances. */
+footer {
+  padding:35px 6vw;
+  background:#0c2031;
+  color:#d7e3e7
+}
+footer a {
+  color:#f6dc99
+}
+:focus-visible {
+  outline:3px solid #b98516;
+  outline-offset:4px
+}
+.skip {
+  position:absolute;
+  left:12px;
+  top:-80px;
+  background:white;
+  padding:12px;
+  z-index:10
+}
+.skip:focus {
+  top:12px
+}
+[hidden] {
+  display:none!important
+}
+/* Tablet and phone layout: stack navigation and content without changing font families. */
+@media(max-width:760px) {
+  header {
+    align-items:flex-start;
+    flex-direction:column;
+    padding:20px
+  }
+  .brand small {
+    font-size:9px
+  }
+  nav {
+    gap:14px;
+    font-size:.85rem
+  }
+  .grid {
+    grid-template-columns:1fr;
+    gap:0
+  }
+  .player-grid {
+    grid-template-columns:1fr 1fr
+  }
+  main {
+    padding:24px 16px
+  }
+  .panel {
+    padding:22px
+  }
+  .hero {
+    padding:26px
+  }
+}
+/* Very narrow phones use one player card per row. */
+@media(max-width:420px) {
+  .player-grid {
+    grid-template-columns:1fr
+  }
+}
+
+/* Security setup stays readable on phones; QR codes never overflow the card. */
+.brand small { color:#cad9e2; }
+.qr { width:240px; max-width:100%; height:auto; display:block; margin:20px auto; }
+.setup-key, .recovery-codes { overflow-wrap:anywhere; font-family:monospace; }
+.recovery-codes { line-height:2; padding:20px; background:#eef3f5; }
+
+/* SMS verification: restrained depth, clear states, and comfortable mobile controls. */
+.sms-panel { padding:0; overflow:hidden; max-width:580px; }
+.sms-banner { padding:30px; background:linear-gradient(135deg,#10283c,#185749); color:#fff; }
+.sms-banner .eyebrow { color:#f6dc99; margin:12px 0; }
+.sms-banner h1 { font-size:clamp(2rem,5vw,2.65rem); }
+.sms-banner p:last-child { margin-bottom:0; color:#e1efeb; }
+.sms-shield { display:grid; place-items:center; width:40px; height:44px; border:1px solid #e8cc84; border-radius:9px 9px 20px 20px; color:#f6dc99; font-weight:800; }
+.sms-body { padding:28px; }
+.sms-steps { display:flex; flex-wrap:wrap; gap:8px 18px; padding:0; list-style:none; font-size:.78rem; font-weight:700; color:#536d7b; }
+.sms-steps .complete { color:#146551; }
+.sms-steps [aria-current] { color:#152f42; }
+.sms-destination strong { display:block; font-size:1.25rem; letter-spacing:.09em; }
+.sms-status { padding:16px 18px; border:1px solid #d4e1e7; border-left:4px solid #617e8c; border-radius:10px; background:#f3f7f9; margin:20px 0; overflow-wrap:anywhere; }
+.sms-status p { margin:6px 0; font-size:.92rem; }
+.sms-success { background:#edf8f1; border-color:#b0d7bf; border-left-color:#187044; }
+.sms-error { background:#fff2f0; border-color:#efb9b1; border-left-color:#ac3428; }
+.sms-error strong { color:#8d271d; }
+.sms-body button { width:100%; }
+.sms-send { background:#e8cc84; color:#152f42; }
+.sms-send:hover { background:#d6b86b; }
+.sms-body button:disabled { opacity:.65; cursor:wait; }
+.sms-progress { margin:8px 0; font-size:.84rem; color:#536d7b; }
+.sms-code-section { border-top:1px solid #dbe5e9; margin-top:22px; padding-top:14px; }
+.sms-code-section input[name=token] { font-size:1.5rem; letter-spacing:.3em; text-align:center; font-variant-numeric:tabular-nums; }
+.sms-code-section small { margin-top:12px; }
+.sms-help { margin-top:22px; font-size:.9rem; }
+.sms-help summary { cursor:pointer; font-weight:650; padding:8px 0; }
+.sms-private { color:#536d7b; font-size:.8rem; margin-bottom:0; }
+@media(max-width:420px) { .sms-banner,.sms-body { padding:22px; } }
+
+/* Email addresses wrap without widening the verification card on phones. */
+.sms-destination strong { font-size:1rem; letter-spacing:normal; overflow-wrap:anywhere; }
+.sms-send { margin-top:14px; }

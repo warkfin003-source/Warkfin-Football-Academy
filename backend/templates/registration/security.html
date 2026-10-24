@@ -1,0 +1,23 @@
+{# Secrets appear only during authenticated setup and in one-time recovery output. #}
+{% extends 'base.html' %}{% block title %}Owner security · Warkfin Academy{% endblock %}{% block content %}
+<section class="panel narrow"><p class="eyebrow">Owner account protection</p>
+{% if stage == 'codes' %}
+<h1>Authenticator connected.</h1><p>Save these recovery codes privately now. Each works once, alongside your password. They will not be shown again.</p>
+<div class="recovery-codes">{% for code in codes %}<div>{{ code }}</div>{% endfor %}</div>
+<p>Keep them somewhere secure, separate from your phone. Do not send the codes or your setup key to anyone.</p><a class="button" href="{% url 'dashboard' %}">I have saved my codes · Continue</a>
+{% elif stage == 'enabled' %}
+<h1>Two-factor protection is on.</h1><p>Your owner dashboard requires your password and an authenticator code. To replace your recovery codes, confirm your current password. Previously saved recovery codes will stop working.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Generate replacement recovery codes</button></form>
+{% elif stage == 'start' %}
+<h1>Secure your owner account.</h1><p>Connect an authenticator app on your phone. It generates a six-digit code for signing in. Confirm your password to begin; setup expires after ten minutes.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Set up authenticator</button></form>
+{% elif stage == 'scan' %}
+<h1>Connect your authenticator.</h1><ol><li>Open your authenticator app and choose to add an account.</li><li>Scan this QR code, or enter the setup key manually with time-based codes.</li><li>Enter the six-digit code shown in the app.</li></ol>
+<img class="qr" src="data:image/svg+xml;base64,{{ qr }}" alt="Private authenticator setup QR code">
+<details><summary>Enter a setup key instead</summary><p class="setup-key">{{ setup_key }}</p><p>Account: Warkfin Academy. Type: time-based.</p></details>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Confirm authenticator</button></form>
+{% elif stage == 'recovery' %}
+<h1>Use a recovery code.</h1><p>Enter one unused code you saved during setup.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button>Verify recovery code</button></form><p><a href="{% url 'owner-otp' %}">Use my authenticator instead</a></p>
+{% else %}
+<h1>Verify your sign-in.</h1><p>Enter the current six-digit code from your authenticator app.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button>Verify and continue</button></form><p><a href="{% url 'owner-recovery' %}">Use a recovery code</a></p>
+{% endif %}</section>{% endblock %}
