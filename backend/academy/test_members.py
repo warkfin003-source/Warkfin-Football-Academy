@@ -109,3 +109,42 @@ class MemberTests(TestCase):
         order=payments.make_order(self.user,'registration')
         payments.settle(order,self.paid_data(order))
         self.assertEqual(self.client.get(f'/payments/{order.pk}/receipt/?month=invalid').status_code,404)
+
+    def test_declined_registration_refund_is_idempotent_private_and_blocks_reuse(self):
+        from .models import RegistrationRefund
+        order=payments.make_order(self.user,'registration')
+        payments.settle(order,self.paid_data(order))
+        payments.request_registration_refund(self.user)
+        payments.request_registration_refund(self.user)
+        self.assertEqual(RegistrationRefund.objects.count(),1)
+        self.assertFalse(payments.registration_paid(self.user))
+        with self.assertRaises(ValueError): payments.make_order(self.user,'registration')
+        self.assertContains(self.client.get('/payments/'),'Refund pending')
+        self.assertContains(self.client.get(f'/payments/{order.pk}/receipt/'),'Refund pending')
+        self.client.force_login(self.other)
+        self.assertNotContains(self.client.get('/payments/'),'application declined. Funds')
+        self.assertEqual(self.client.get(f'/payments/{order.pk}/receipt/').status_code,404)
+
+    def test_unpaid_application_has_no_refund_obligation(self):
+        from .models import RegistrationRefund
+        payments.make_order(self.user,'registration')
+        payments.request_registration_refund(self.user)
+        self.assertFalse(RegistrationRefund.objects.exists())
+
+    def test_owner_decline_creates_refund_and_cannot_later_approve_same_payment(self):
+        from .models import RegistrationRefund
+        app=Application.objects.create(user=self.user,full_name='Applicant',phone='08166017588',date_of_birth='2000-01-01',kind='adult',preferred_position='CF',emergency_name='Contact',emergency_relationship='Sibling',emergency_phone='08000000001',rules_accepted=True,privacy_accepted=True)
+        order=payments.make_order(self.user,'registration')
+        payments.settle(order,self.paid_data(order))
+        owner=User.objects.create_superuser(username='reviewer@test.local',email='reviewer@test.local',password='Test!178273',email_verified=True)
+        self.client.force_login(owner)
+        url=f'/owner/applications/{app.pk}/'
+        self.client.post(url,{'decision':'declined'})
+        self.client.post(url,{'decision':'declined'})
+        app.refresh_from_db()
+        self.assertEqual(app.status,'declined')
+        self.assertEqual(RegistrationRefund.objects.filter(payment=order).count(),1)
+        squad=Squad.objects.create(name='Review A')
+        self.client.post(url,{'decision':'approved','squad':squad.pk})
+        app.refresh_from_db();self.assertEqual(app.status,'declined')
+        self.assertFalse(Player.objects.filter(user=self.user).exists())

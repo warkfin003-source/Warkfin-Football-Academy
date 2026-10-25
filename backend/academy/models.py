@@ -175,6 +175,17 @@ class PaymentOrder(models.Model):
     def amount_naira(self): return self.amount_kobo // 100
 
 
+class RegistrationRefund(models.Model):
+    """Private refund obligation, not proof that funds have been returned.
+
+    Provider settlement is deliberately unavailable until refund integration is verified.
+    """
+    payment = models.OneToOneField(PaymentOrder, on_delete=models.PROTECT, related_name='refund')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=16, default='requested', choices=[('requested', 'Refund pending')], editable=False)
+    reason = models.CharField(max_length=160, default='Application declined', editable=False)
+
+
 class DuesMonth(models.Model):
     """A distinct paid calendar month; uniqueness prevents double credit."""
     user = models.ForeignKey(User, on_delete=models.PROTECT)

@@ -160,6 +160,9 @@ def review(request,pk):
                     player=Player.objects.create(directory_number=number,display_name=obj.full_name,positions=obj.preferred_position,user=obj.user,squad=squad)
                 audit(request.user,'player.approved',player)
             obj.status=decision;obj.review_note=form.cleaned_data['review_note'];obj.save()
+            if decision=='declined':
+                from .payments import request_registration_refund
+                request_registration_refund(obj.user)
             audit(request.user,'application.'+decision,obj)
         messages.success(request,'Application review saved. The applicant can see the decision in their dashboard.')
         return redirect('dashboard')

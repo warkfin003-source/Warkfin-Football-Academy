@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from .models import PaymentOrder, DuesMonth, User, AuditEvent
+from .models import PaymentOrder, DuesMonth, User, AuditEvent, RegistrationRefund
 
 REGISTRATION_KOBO = 500000
 MONTH_KOBO = 300000
@@ -38,7 +38,17 @@ def month_sequence(start, count):
 
 
 def registration_paid(user):
-    return PaymentOrder.objects.filter(user=user, purpose='registration', status='paid', amount_kobo=REGISTRATION_KOBO).exists()
+    return PaymentOrder.objects.filter(user=user, purpose='registration', status='paid', amount_kobo=REGISTRATION_KOBO, refund__isnull=True).exists()
+
+
+def request_registration_refund(user):
+    """Record each declined registration once; never initiate or pretend to settle a refund."""
+    with transaction.atomic():
+        User.objects.select_for_update().get(pk=user.pk)
+        for order in PaymentOrder.objects.filter(user=user, purpose='registration', status='paid'):
+            refund, created = RegistrationRefund.objects.get_or_create(payment=order)
+            if created:
+                AuditEvent.objects.create(action='refund.requested', object_reference=f'registrationrefund:{refund.pk}')
 
 
 def signature_payload(data):
@@ -104,6 +114,8 @@ def make_order(user, purpose, start=None, months=0):
         raise ValueError('Choose a valid starting month and payment period.')
     with transaction.atomic():
         User.objects.select_for_update().get(pk=user.pk)
+        if RegistrationRefund.objects.filter(payment__user=user).exists():
+            raise ValueError('Contact the academy about your declined application and pending refund before paying again.')
         pending = PaymentOrder.objects.filter(user=user, status='pending').first()
         if pending: return pending
         if purpose=='registration' and registration_paid(user): raise ValueError('Registration is already paid.')

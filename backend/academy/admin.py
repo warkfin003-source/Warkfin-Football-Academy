@@ -90,3 +90,10 @@ site.register(DuesMonth,DuesAdmin)
 site.register(CoachProfile,LoggedAdmin)
 site.register(AcademyEvent,LoggedAdmin)
 site.register(AppointmentRequest,AppointmentAdmin)
+
+# Refund obligations are visible to the owner but cannot be marked paid by editing a form.
+from .models import RegistrationRefund
+class RefundAdmin(AuditAdmin):
+    list_display=('payment','status','requested_at')
+    readonly_fields=tuple(f.name for f in RegistrationRefund._meta.fields)
+site.register(RegistrationRefund,RefundAdmin)
