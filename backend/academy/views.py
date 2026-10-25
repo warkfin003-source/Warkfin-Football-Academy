@@ -48,6 +48,7 @@ def send_verification(user):
 # Save the account before email submission so delivery failures can be retried safely.
 def signup(request):
     if request.user.is_authenticated: return redirect('dashboard')
+    coach_signup=request.GET.get('role')=='coach'
     form=SignUpForm(request.POST or None)
     if request.method=='POST' and form.is_valid():
         user=form.save()
@@ -60,7 +61,7 @@ def signup(request):
             messages.warning(request,'Account created, but email delivery failed. Use Resend verification or contact the academy.')
         return redirect('dashboard')
     from .payments import ready
-    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account','registration_notice':True,'payment_ready':ready()})
+    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account','registration_notice':not coach_signup,'coach_notice':coach_signup,'payment_ready':ready()})
 
 # Require a CSRF-protected POST; middleware rate-limits account endpoints.
 @login_required
@@ -109,9 +110,10 @@ def application(request):
 def dashboard(request):
     user=request.user
     from .payments import registration_paid
-    context={'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}
+    from .models import CoachApplication
+    context={'coach_application':CoachApplication.objects.filter(user=user).first(),'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}
     if user.is_superuser:
-        context.update(role='Owner',applications=Application.objects.filter(status='pending'),players=Player.objects.select_related('squad').all(),sessions=TrainingSession.objects.order_by('-starts_at')[:20])
+        context.update(role='Owner',coach_applications=CoachApplication.objects.filter(status='pending'),applications=Application.objects.filter(status='pending'),players=Player.objects.select_related('squad').all(),sessions=TrainingSession.objects.order_by('-starts_at')[:20])
     elif user.email_verified and user.coached_squads.exists():
         context.update(role='Coach',players=Player.objects.filter(squad__coaches=user,active=True).distinct(),sessions=TrainingSession.objects.filter(squad__coaches=user).distinct().order_by('-starts_at')[:20])
     else:

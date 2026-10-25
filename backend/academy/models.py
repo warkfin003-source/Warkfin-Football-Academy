@@ -148,6 +148,19 @@ class OwnerSMSChallenge(models.Model):
     channel = models.CharField(max_length=5, default="sms", choices=[("sms", "SMS"), ("email", "Email")])
 
 
+class CoachApplication(models.Model):
+    """Private profile submitted by a coach; squad permissions require owner review."""
+    user=models.OneToOneField(User,on_delete=models.PROTECT,related_name='coach_application')
+    full_name=models.CharField(max_length=160)
+    phone=models.CharField(max_length=30)
+    experience=models.TextField(max_length=2000,help_text='Describe your coaching experience and any qualifications. Do not upload identity documents here.')
+    availability=models.TextField(max_length=1000,help_text='Days and times when you can help.')
+    conduct_accepted=models.BooleanField(default=False,verbose_name='I agree to respectful coaching, safe supervision and keeping player records private.')
+    status=models.CharField(max_length=12,default='pending',choices=Application.STATUS)
+    review_note=models.TextField(max_length=500,blank=True)
+    submitted_at=models.DateTimeField(auto_now_add=True)
+
+
 class CoachProfile(models.Model):
     """Public coaching identity; this never grants account permissions."""
     name = models.CharField(max_length=160)
