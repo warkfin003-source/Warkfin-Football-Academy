@@ -46,6 +46,6 @@ class WelcomeTests(TestCase):
         self.assertContains(response,'MY PRIVATE');self.assertNotContains(response,'OTHER PRIVATE');self.assertNotContains(response,'Shared activity')
     def test_coach_and_owner_do_not_get_player_fee_notice(self):
         self.squad.coaches.add(self.other)
-        self.assertNotIn('registration-fee',[x['key'] for x in notification_items(self.other)])
+        self.assertFalse(any(x['key'].startswith('registration-fee:') for x in notification_items(self.other)))
         owner=User.objects.create_superuser(username='owner@test.local',email='owner@test.local',email_verified=True)
-        self.assertNotIn('registration-fee',[x['key'] for x in notification_items(owner)])
+        self.assertFalse(any(x['key'].startswith('registration-fee:') for x in notification_items(owner)))

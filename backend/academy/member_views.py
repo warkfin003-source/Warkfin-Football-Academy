@@ -1,5 +1,6 @@
 """Private member payments, appointments, notifications and calendar exports."""
 import calendar
+import hashlib
 import json
 from datetime import date, datetime, timedelta, timezone as dt_timezone
 from django import forms
@@ -204,12 +205,33 @@ def notification_items(user):
         items.append({'key':f'training:{s.pk}:{s.status}:{int(s.starts_at.timestamp())}','title':s.title,
             'body':f'{timezone.localtime(s.starts_at):%d %b %Y, %H:%M} WAT · {s.venue} · {s.get_status_display()}'})
     for a in AppointmentRequest.objects.filter(user=user).order_by('-created_at')[:20]:
-        items.append({'key':f'appointment:{a.pk}:{a.status}','title':f'Appointment with {a.coach.nickname}: {a.get_status_display()}', 'body':a.reply or 'Your request is awaiting review. This is not a confirmed appointment.'})
+        items.append({'key':f'appointment:{a.pk}:{a.status}','title':f'Appointment with {a.coach.nickname}: {a.get_status_display()}', 'body':a.reply or {'pending':'Your request is awaiting review. This is not a confirmed appointment.', 'confirmed':'Your appointment is confirmed. Check your private calendar for the agreed details.', 'declined':'This appointment request was declined. You can request another suitable time.'}[a.status]})
     coach_app=getattr(user,'coach_application',None)
     if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and not payments.registration_paid(user):
         items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Registration cannot be completed until payment is verified. Online payments are awaiting activation.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.'})
     if approved_player(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
         items.append({'key':'dues:'+timezone.localdate().strftime('%Y-%m'),'title':'Monthly dues: ₦3,000','body':'No verified payment is recorded for this month. Check Payments & receipts.'})
+    # Review decisions are private, actionable updates, never public announcements.
+    if coach_app:
+        items.append({'key':f'coach-review:{coach_app.pk}:{coach_app.status}',
+            'title':f'Coach profile: {coach_app.get_status_display()}',
+            'body':coach_app.review_note or 'Open your coach profile to view its review status and next steps.'})
+    application=Application.objects.filter(user=user).first()
+    if application:
+        items.append({'key':f'player-review:{application.pk}:{application.status}',
+            'title':f'Player application: {application.get_status_display()}',
+            'body':'Open your application to view the decision and any corrections requested.'})
+    destinations={'news':('dashboard','View academy news'), 'event':('calendar','Open my calendar'),
+        'training':('calendar','View training schedule'), 'appointment':('coaches','View appointment'),
+        'coach-review':('coach-apply','View coach profile'), 'player-review':('application','View application'),
+        'registration-fee':('billing','View payment status'), 'dues':('billing','View dues & receipts')}
+    for item in items:
+        # A changed message becomes unread again, including edits that keep its status.
+        revision=hashlib.sha256((item['title']+'\n'+item['body']).encode()).hexdigest()[:16]
+        kind=item['key'].split(':')[0]
+        item['key']+=':'+revision
+        route,item['action']=destinations[kind]
+        item['url']=reverse(route)
     seen=set(NotificationRead.objects.filter(user=user).values_list('key',flat=True))
     for item in items: item['read']=item['key'] in seen
     return items
@@ -218,11 +240,22 @@ def notification_items(user):
 @login_required
 def notifications(request):
     items=notification_items(request.user)
+    scope=request.GET.get('status','all')
+    if scope not in ('all','unread','read'): scope='all'
     if request.method=='POST':
-        key=request.POST.get('key')
-        if key in {i['key'] for i in items}: NotificationRead.objects.get_or_create(user=request.user,key=key)
-        return redirect('notifications')
-    return render(request,'notifications.html',{'items':items})
+        # Only currently authorized items can be marked; ignore supplied foreign keys.
+        if request.POST.get('action')=='mark-all':
+            NotificationRead.objects.bulk_create([
+                NotificationRead(user=request.user,key=item['key']) for item in items if not item['read']
+            ],ignore_conflicts=True)
+            messages.success(request,'Your current notifications are marked as read.')
+        else:
+            key=request.POST.get('key')
+            if key in {i['key'] for i in items}: NotificationRead.objects.get_or_create(user=request.user,key=key)
+        return redirect(reverse('notifications')+'?status='+scope)
+    unread=sum(not item['read'] for item in items)
+    displayed=[i for i in items if scope=='all' or i['read']==(scope=='read')]
+    return render(request,'notifications.html',{'items':displayed,'scope':scope,'unread':unread,'total':len(items)})
 
 
 class AppointmentForm(forms.ModelForm):
