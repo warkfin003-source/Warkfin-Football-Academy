@@ -1,12 +1,15 @@
 """Route map for public health checks, account flows and permission-checked academy views."""
 from django.urls import path, include
 from django.contrib.auth import views as auth
+from academy import public_views
+from academy.welcome import AcademyLoginView
 from academy import views, mfa, member_views, coach_views, owner_views
 from academy.admin import site
 from academy.forms import EmailLoginForm
 from academy.owner_activation import OwnerActivationView
 
 urlpatterns=[
+    path('schedule/',public_views.schedule,name='public-schedule'),
     path('coach/profile/edit/',coach_views.edit_profile,name='coach-profile-edit'),
     path('owner/',owner_views.workspace,name='owner-workspace'),
     path('owner/setup/',owner_views.setup,name='owner-setup'),
@@ -34,7 +37,7 @@ urlpatterns=[
     path('accounts/register/',views.signup,name='signup'),
     path('accounts/resend/',views.resend_verification,name='resend'),
     path('accounts/verify/<str:token>/',views.verify,name='verify'),
-    path('accounts/login/',auth.LoginView.as_view(authentication_form=EmailLoginForm),name='login'),
+    path('accounts/login/',AcademyLoginView.as_view(),name='login'),
     path('accounts/',include('django.contrib.auth.urls')),
     path('application/',views.application,name='application'),
     path('profile/',views.profile,name='profile'),

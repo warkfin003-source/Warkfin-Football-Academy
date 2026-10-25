@@ -143,13 +143,18 @@ def calendar_page(request):
     try: month=datetime.strptime(request.GET.get('month',''),'%Y-%m').date().replace(day=1)
     except ValueError: month=timezone.localdate().replace(day=1)
     if month.year<2000 or month.year>2099: month=timezone.localdate().replace(day=1)
-    events=list(visible_events(request.user).filter(starts_at__year=month.year,starts_at__month=month.month).order_by('starts_at'))
-    sessions=list(visible_sessions(request.user).filter(starts_at__year=month.year,starts_at__month=month.month).order_by('starts_at'))
+    scope=request.GET.get('scope','all')
+    if scope not in ('all','private','shared'): scope='all'
+    event_query=visible_events(request.user)
+    if scope=='private': event_query=event_query.filter(recipient=request.user)
+    elif scope=='shared': event_query=event_query.filter(recipient__isnull=True)
+    events=list(event_query.filter(starts_at__year=month.year,starts_at__month=month.month).order_by('starts_at'))
+    sessions=[] if scope=='private' else list(visible_sessions(request.user).filter(starts_at__year=month.year,starts_at__month=month.month).order_by('starts_at'))
     cells=[]
     for week in calendar.Calendar(firstweekday=0).monthdatescalendar(month.year,month.month):
         cells.append([{'date':d,'current':d.month==month.month,
             'items':[{'title':e.title,'time':e.starts_at} for e in events+sessions if timezone.localtime(e.starts_at).date()==d]} for d in week])
-    return render(request,'calendar.html',{'month':month,'weeks':cells,'events':events,'sessions':sessions,
+    return render(request,'calendar.html',{'scope':scope,'month':month,'weeks':cells,'events':events,'sessions':sessions,
         'previous':(month-timedelta(days=1)).strftime('%Y-%m'), 'next':payments.month_sequence(month,2)[-1].strftime('%Y-%m')})
 
 
@@ -200,7 +205,8 @@ def notification_items(user):
             'body':f'{timezone.localtime(s.starts_at):%d %b %Y, %H:%M} WAT · {s.venue} · {s.get_status_display()}'})
     for a in AppointmentRequest.objects.filter(user=user).order_by('-created_at')[:20]:
         items.append({'key':f'appointment:{a.pk}:{a.status}','title':f'Appointment with {a.coach.nickname}: {a.get_status_display()}', 'body':a.reply or 'Your request is awaiting review. This is not a confirmed appointment.'})
-    if user.email_verified and not payments.registration_paid(user):
+    coach_app=getattr(user,'coach_application',None)
+    if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and not payments.registration_paid(user):
         items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Registration cannot be completed until payment is verified. Online payments are awaiting activation.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.'})
     if approved_player(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
         items.append({'key':'dues:'+timezone.localdate().strftime('%Y-%m'),'title':'Monthly dues: ₦3,000','body':'No verified payment is recorded for this month. Check Payments & receipts.'})

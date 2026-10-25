@@ -45,3 +45,10 @@ Registration (NGN 5,000 once): application processing, player profile and regist
 
 ## Email-only verification
 SMS delivery and startup provider checks are disabled. The owner receives login codes at the verified account email. No SMS credits or paid upgrade is needed. Provider email sending quotas still apply; no paid service is enabled by this change. Existing SMS challenges cannot be used when SMS is disabled.
+
+## Welcome and schedule visibility
+A successful password login queues a one-time welcome card. For the owner it is displayed only after the existing email-code verification is completed. Announcements and training use the account's current access rules; private welcome appointments must name the current user as recipient.
+
+The member calendar supports All, Private and Shared filters. The anonymous `/schedule/` page requires both Published and Public, with neither a recipient nor squad restriction. Public is off for existing events. In Owner controls > Calendar & courses, select Public only for events intended for website visitors. Never put player details or private meeting information in a public event. New Public schedule links appear in the academy website menu.
+
+Player fee reminders are not shown to owner accounts, assigned coaches or coach applicants. Payment collection still requires merchant access and provider testing; these changes enable no paid service.

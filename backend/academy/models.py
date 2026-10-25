@@ -223,8 +223,11 @@ class AcademyEvent(models.Model):
     squad = models.ForeignKey(Squad, null=True, blank=True, on_delete=models.PROTECT)
     recipient = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
     published = models.BooleanField(default=False)
+    public = models.BooleanField(default=False, help_text='Visible without signing in. Only academy-wide events without a private recipient or squad can be public.')
     updated_at = models.DateTimeField(auto_now=True)
     def clean(self):
+        if self.public and (self.recipient_id or self.squad_id):
+            raise ValidationError('Public events cannot have a private recipient or a squad restriction.')
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValidationError('The end must be after the start.')
     def __str__(self): return self.title

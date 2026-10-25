@@ -169,3 +169,11 @@ for model,manager in [(Player,ManagedPlayerAdmin),(CoachProfile,CoachProfileAdmi
 site.register(Attendance,AttendanceAdmin)
 site.register(Feedback,FeedbackAdmin)
 site.register(CoachApplication,CoachApplicationAdmin)
+
+# Make the public/private audience visible when the owner manages calendar events.
+class EventAdmin(PublishingAdmin):
+    list_display=('title','kind','starts_at','published','public','recipient','squad')
+    list_filter=('published','public','kind')
+    date_hierarchy='starts_at'
+site.unregister(AcademyEvent)
+site.register(AcademyEvent,EventAdmin)
