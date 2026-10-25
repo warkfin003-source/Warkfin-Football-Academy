@@ -1,0 +1,5 @@
+{% extends 'admin/base.html' %}{% load static %}
+{% block title %}{{ title }} | Warkfin Academy{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'academy/admin.css' %}">{% endblock %}
+{% block branding %}<div id="site-name"><a href="{% url 'owner-workspace' %}">WARKFIN · OWNER ADMINISTRATION</a></div>{% endblock %}
+{% block nav-global %}<a class="owner-home" href="{% url 'owner-workspace' %}">← Owner workspace</a>{% endblock %}

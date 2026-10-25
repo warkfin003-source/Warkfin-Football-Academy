@@ -70,3 +70,15 @@ def review(request,pk):
         messages.success(request,'Coach application review saved.')
         return redirect('dashboard')
     return render(request,'coach_review.html',{'application':obj,'form':form})
+
+@login_required
+def edit_profile(request):
+    # Existing coaches can update contact/experience, never approval or squad access.
+    if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
+    obj=get_object_or_404(CoachApplication,user=request.user,status='approved')
+    form=CoachForm(request.POST or None,instance=obj)
+    if request.method=='POST' and form.is_valid():
+        obj=form.save();audit(request.user,'coach.profile_updated',obj)
+        messages.success(request,'Your private coaching profile has been updated.')
+        return redirect('coach-apply')
+    return render(request,'form.html',{'title':'Edit my coaching profile','form':form,'button':'Save profile'})

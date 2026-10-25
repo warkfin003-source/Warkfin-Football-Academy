@@ -195,8 +195,11 @@ class RegistrationRefund(models.Model):
     """
     payment = models.OneToOneField(PaymentOrder, on_delete=models.PROTECT, related_name='refund')
     requested_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=16, default='requested', choices=[('requested', 'Refund pending')], editable=False)
+    status = models.CharField(max_length=16, default='requested', choices=[('requested', 'Refund pending'),('processing','Refund processing'),('refunded','Refund recorded by owner')], editable=False)
     reason = models.CharField(max_length=160, default='Application declined', editable=False)
+    refund_reference = models.CharField(max_length=120, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    recorded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT, related_name='recorded_refunds')
 
 
 class DuesMonth(models.Model):

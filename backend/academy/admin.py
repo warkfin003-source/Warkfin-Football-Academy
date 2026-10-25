@@ -97,3 +97,75 @@ class RefundAdmin(AuditAdmin):
     list_display=('payment','status','requested_at')
     readonly_fields=tuple(f.name for f in RegistrationRefund._meta.fields)
 site.register(RegistrationRefund,RefundAdmin)
+
+# Owner-only bulk controls preserve financial and membership history.
+from .models import Attendance, Feedback, Availability, CoachApplication
+from django.contrib import messages
+class ActiveRecordAdmin(LoggedAdmin):
+    actions=['activate_records','archive_records']
+    def set_active(self,request,queryset,value):
+        for obj in queryset:
+            obj.active=value;obj.save(update_fields=['active'])
+            AuditEvent.objects.create(actor=request.user,action='admin.activated' if value else 'admin.archived',object_reference=f'{obj._meta.model_name}:{obj.pk}')
+    @admin.action(description='Activate selected records')
+    def activate_records(self,request,queryset): self.set_active(request,queryset,True)
+    @admin.action(description='Archive selected records (retain history)')
+    def archive_records(self,request,queryset): self.set_active(request,queryset,False)
+class ManagedPlayerAdmin(PlayerAdmin,ActiveRecordAdmin): pass
+class CoachProfileAdmin(ActiveRecordAdmin):
+    list_display=('name','nickname','active')
+    search_fields=('name','nickname')
+    list_filter=('active',)
+class PublishingAdmin(LoggedAdmin):
+    list_display=('title','published')
+    search_fields=('title',)
+    list_filter=('published',)
+    actions=['publish_records','unpublish_records']
+    def set_published(self,request,queryset,value):
+        for obj in queryset:
+            obj.published=value;obj.save(update_fields=['published'])
+            AuditEvent.objects.create(actor=request.user,action='admin.published' if value else 'admin.unpublished',object_reference=f'{obj._meta.model_name}:{obj.pk}')
+    @admin.action(description='Publish selected records')
+    def publish_records(self,request,queryset): self.set_published(request,queryset,True)
+    @admin.action(description='Unpublish selected records')
+    def unpublish_records(self,request,queryset): self.set_published(request,queryset,False)
+class AnnouncementAdmin(PublishingAdmin):
+    # Django presents its confirmation page; no destructive action runs from a GET.
+    def has_delete_permission(self,request,obj=None): return request.user.is_superuser
+    def delete_model(self,request,obj):
+        AuditEvent.objects.create(actor=request.user,action='announcement.deleted',object_reference=f'announcement:{obj.pk}')
+        super().delete_model(request,obj)
+    def delete_queryset(self,request,queryset):
+        for obj in queryset:
+            AuditEvent.objects.create(actor=request.user,action='announcement.deleted',object_reference=f'announcement:{obj.pk}')
+        super().delete_queryset(request,queryset)
+class SessionAdmin(LoggedAdmin):
+    list_display=('title','squad','starts_at','venue','status')
+    search_fields=('title','venue')
+    list_filter=('status','squad')
+    date_hierarchy='starts_at'
+class SquadAdmin(LoggedAdmin):
+    filter_horizontal=('coaches',)
+    search_fields=('name',)
+class AttendanceAdmin(LoggedAdmin):
+    list_display=('player','session','status','recorded_by')
+    list_filter=('status','session__squad')
+    readonly_fields=('recorded_by',)
+    def save_model(self,request,obj,form,change):
+        obj.recorded_by=request.user;super().save_model(request,obj,form,change)
+class FeedbackAdmin(LoggedAdmin):
+    list_display=('player','goal','shared_with_player','created_at')
+    search_fields=('player__display_name','goal')
+    readonly_fields=('author',)
+    def save_model(self,request,obj,form,change):
+        if not obj.pk: obj.author=request.user
+        super().save_model(request,obj,form,change)
+class CoachApplicationAdmin(ApplicationAdmin):
+    readonly_fields=tuple(f.name for f in CoachApplication._meta.fields)
+    search_fields=('full_name','user__email')
+    list_filter=('status',)
+for model,manager in [(Player,ManagedPlayerAdmin),(CoachProfile,CoachProfileAdmin),(Announcement,AnnouncementAdmin),(AcademyEvent,PublishingAdmin),(TrainingSession,SessionAdmin),(Squad,SquadAdmin)]:
+    site.unregister(model);site.register(model,manager)
+site.register(Attendance,AttendanceAdmin)
+site.register(Feedback,FeedbackAdmin)
+site.register(CoachApplication,CoachApplicationAdmin)

@@ -109,6 +109,9 @@ def application(request):
 @login_required
 def dashboard(request):
     user=request.user
+    if user.is_superuser:
+        from .owner_views import workspace
+        return workspace(request)
     from .payments import registration_paid
     from .models import CoachApplication
     context={'coach_application':CoachApplication.objects.filter(user=user).first(),'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}

@@ -9,7 +9,7 @@ Registration is NGN 5,000; dues are NGN 3,000 per calendar month. Account creati
 - Calendar with month selection; training and owner-published courses/appointments; downloadable ICS with a one-hour reminder. Calendar app settings control notifications. Downloads do not automatically sync changes.
 - In-portal news/notifications and personal read markers. No background SMS/push/email notification service is claimed.
 - Coach profiles for Smith, Messi and Oracle, and appointment requests from approved players. The owner reviews these in admin. Confirmation creates a private one-hour calendar event; publish the agreed location on that event. Changing the request to declined/pending unpublishes it.
-- Coach profiles create no user accounts and grant no access. Obtain each coach's email, create/verify their account, then explicitly assign squads. Do not grant owner/superuser rights to coaches.
+- Coaches register at `/accounts/register/?role=coach`, verify email and submit `/coach/register/`. The owner reviews profiles and assigns squads. Approved coaches can edit private profile details at `/coach/profile/edit/`; edits never change their permissions. Public coach profiles remain owner-managed.
 
 ## PalmPay activation — collection is OFF by default
 The business account alone is insufficient for API checkout. Obtain approved PalmPay Checkout merchant access. Never paste private keys in chat or commit them.
@@ -23,7 +23,7 @@ The business account alone is insufficient for API checkout. Obtain approved Pal
 7. Callback: `/payments/palmpay/notify/`; browser return: `/payments/`. Both use the configured HTTPS `PORTAL_ORIGIN`.
 8. Perform a controlled real collection and verify settlement in the merchant account before public rollout.
 
-A callback requires a valid PalmPay signature and matching App ID. The server then independently queries the provider. Only status 2 with the expected order ID, amount and NGN currency produces PAID and receipts. Browser redirects and user-supplied amounts never count as payment proof. Pending orders are reused; check their status before retrying. Refund automation is not implemented: process any agreed refund through the provider and reconcile records before issuing revised receipts. Do not enable collection until this operational process is agreed.
+A callback requires a valid PalmPay signature and matching App ID. The server then independently queries the provider. Only status 2 with the expected order ID, amount and NGN currency produces PAID and receipts. Browser redirects and user-supplied amounts never count as payment proof. Pending orders are reused; check their status before retrying. Refund automation is not implemented. The owner can record processing or a completed external refund at `/owner/refunds/<id>/`. Completion requires the provider refund reference and an explicit confirmation that the full registration payment was returned. The action does not move money. Completed records are locked; players see the separate owner-recorded refund status on their original receipt. Do not enable collection until the provider workflow is verified.
 
 ## Source references
 - https://docs-daily.palmpay.com/en/pay-ins-palmpay-checkout-create-order.html
@@ -34,3 +34,14 @@ A callback requires a valid PalmPay signature and matching App ID. The server th
 
 ## Owner workflow
 Admin contains coach profiles, academy events, appointment requests, payment orders and dues months. Financial records are read-only. Publish events intentionally; a recipient makes an event private to that account. Player receipts and notifications never expose other players' payment or attendance records.
+
+## Owner workspace and record lifecycle
+The owner dashboard at `/owner/` includes live counts, review queues, management shortcuts, gross recorded collections and outstanding refund obligations. `/owner/setup/` reports configuration presence without exposing keys; it is not a provider health check.
+
+Players and public coaches support activate/archive actions. Announcements support publish/unpublish and individual deletion through Django's confirmation page. Financial records and audit logs cannot be deleted. Manage account activation using the user record; keep the owner account active. Squad coach assignments control access.
+
+## Approved fee coverage
+Registration (NGN 5,000 once): application processing, player profile and registration records, and onboarding after approval. Monthly dues (NGN 3,000): scheduled training, coaching costs, shared equipment maintenance and routine academy operations. Declined applications receive a registration refund. Personal kits, transport and competition charges are explained separately when applicable. Other cancellation terms still need to be settled before checkout activation.
+
+## Brevo steps
+Open app.brevo.com. Top-right Usage and plan shows the SMS balance. Account menu > Settings > Campaigns > SMS Sender ID shows sender registration and country status. The configured sender is Warkfin; register it for Nigeria using accurate business details and transactional SMS samples. On Windows use Win + Shift + S to crop the SMS balance and sender status, excluding API keys and passwords. Account menu > My plan > SMS prepaid credits allows reviewing Nigeria pricing before purchase.
