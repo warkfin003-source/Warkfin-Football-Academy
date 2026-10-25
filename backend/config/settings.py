@@ -89,6 +89,8 @@ OWNER_LOGIN_EMAIL = os.environ.get('OWNER_LOGIN_EMAIL', '').strip().lower()
 
 # Owner SMS destination is server-controlled; login forms cannot change it.
 OWNER_MFA_METHOD = os.environ.get('OWNER_MFA_METHOD', 'totp')
+# SMS is disabled to honour the owner's no-paid-services requirement.
+OWNER_SMS_ENABLED = False
 OWNER_SMS_PHONE = os.environ.get('OWNER_SMS_PHONE', '').strip()
 OWNER_SMS_SENDER = os.environ.get('OWNER_SMS_SENDER', 'Warkfin')
 

@@ -17,7 +17,7 @@ class OwnerWorkspaceTests(TestCase):
             self.assertEqual(self.client.get(url).status_code,403)
         self.client.force_login(self.owner)
         self.assertContains(self.client.get('/'),'Lead the academy')
-        self.assertContains(self.client.get('/owner/setup/'),'SMS Sender ID')
+        self.assertContains(self.client.get('/owner/setup/'),'Email verification')
     def test_refund_requires_evidence_and_does_not_change_collection(self):
         self.client.force_login(self.owner);url=f'/owner/refunds/{self.refund.pk}/'
         self.client.post(url,{'status':'refunded'})

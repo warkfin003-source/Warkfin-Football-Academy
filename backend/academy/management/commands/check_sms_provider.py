@@ -10,6 +10,9 @@ class Command(BaseCommand):
     help = 'Check Brevo API access and SMS credit availability without sending SMS.'
 
     def handle(self, *args, **options):
+        if not settings.OWNER_SMS_ENABLED:
+            self.stdout.write('Email-only verification is active. SMS checks are disabled.')
+            return
         if not settings.BREVO_API_KEY:
             self.stdout.write('SMS readiness: API key missing.')
             return

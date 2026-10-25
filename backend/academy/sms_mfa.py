@@ -81,6 +81,8 @@ def sms_verified(request):
 
 def send_sms(code):
     """Submit one transactional SMS. Provider acceptance is not delivery confirmation."""
+    if not settings.OWNER_SMS_ENABLED:
+        raise SMSDeliveryError('SMS is disabled. Use email verification.')
     phone = settings.OWNER_SMS_PHONE
     if not re.fullmatch(r'\+[1-9]\d{7,14}', phone) or not settings.BREVO_API_KEY:
         raise SMSDeliveryError('SMS delivery is not configured. Contact the academy owner.')
@@ -132,7 +134,7 @@ def sms_security(request):
     error = ''
     now = timezone.now()
     channel = request.POST.get('channel', 'sms') if request.method == 'POST' else 'email'
-    if channel not in {'sms', 'email'}:
+    if not settings.OWNER_SMS_ENABLED or channel not in {'sms', 'email'}:
         channel = 'email'
     if request.method == 'POST' and request.POST.get('action') == 'send':
         # Serialize per owner so concurrent browsers cannot bypass quotas.
@@ -180,7 +182,7 @@ def sms_security(request):
             with transaction.atomic():
                 challenge = OwnerSMSChallenge.objects.select_for_update().filter(user=request.user).first()
                 binding = fingerprint(request.session.get('owner_sms_binding', ''))
-                eligible = (challenge and challenge.accepted and challenge.expires_at > now and
+                eligible = (challenge and (settings.OWNER_SMS_ENABLED or challenge.channel == 'email') and challenge.accepted and challenge.expires_at > now and
                     challenge.attempts < 5 and constant_time_compare(challenge.binding, binding))
                 if eligible:
                     challenge.attempts += 1
@@ -203,10 +205,10 @@ def sms_security(request):
     challenge = OwnerSMSChallenge.objects.filter(user=request.user).first()
     browser_matches = bool(challenge and constant_time_compare(challenge.binding,
         fingerprint(request.session.get('owner_sms_binding', ''))))
-    pending = bool(browser_matches and challenge.accepted and challenge.expires_at > now and challenge.attempts < 5)
+    pending = bool(browser_matches and (settings.OWNER_SMS_ENABLED or challenge.channel == 'email') and challenge.accepted and challenge.expires_at > now and challenge.attempts < 5)
     cooldown = max(0, 60 - int((timezone.now() - challenge.sent_at).total_seconds())) if challenge and challenge.sent_at else 0
     return render(request, 'registration/sms_security.html', {
-        'form': form, 'notice': notice, 'error': error, 'pending': pending, 'cooldown': cooldown,
+        'sms_enabled': settings.OWNER_SMS_ENABLED, 'form': form, 'notice': notice, 'error': error, 'pending': pending, 'cooldown': cooldown,
         'phone_suffix': settings.OWNER_SMS_PHONE[-4:], 'email_address': request.user.email,
         'channel': channel, 'pending_channel': challenge.channel if pending else channel,
     })

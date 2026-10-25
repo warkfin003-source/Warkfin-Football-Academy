@@ -43,5 +43,5 @@ Players and public coaches support activate/archive actions. Announcements suppo
 ## Approved fee coverage
 Registration (NGN 5,000 once): application processing, player profile and registration records, and onboarding after approval. Monthly dues (NGN 3,000): scheduled training, coaching costs, shared equipment maintenance and routine academy operations. Declined applications receive a registration refund. Personal kits, transport and competition charges are explained separately when applicable. Other cancellation terms still need to be settled before checkout activation.
 
-## Brevo steps
-Open app.brevo.com. Top-right Usage and plan shows the SMS balance. Account menu > Settings > Campaigns > SMS Sender ID shows sender registration and country status. The configured sender is Warkfin; register it for Nigeria using accurate business details and transactional SMS samples. On Windows use Win + Shift + S to crop the SMS balance and sender status, excluding API keys and passwords. Account menu > My plan > SMS prepaid credits allows reviewing Nigeria pricing before purchase.
+## Email-only verification
+SMS delivery and startup provider checks are disabled. The owner receives login codes at the verified account email. No SMS credits or paid upgrade is needed. Provider email sending quotas still apply; no paid service is enabled by this change. Existing SMS challenges cannot be used when SMS is disabled.

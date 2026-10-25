@@ -6,7 +6,7 @@ from django.utils import timezone
 from .models import User, OwnerSMSChallenge
 from .sms_mfa import SMSDeliveryError
 
-@override_settings(PORTAL_ENABLED=True, OWNER_MFA_METHOD='sms', OWNER_MFA_REQUIRED=True,
+@override_settings(OWNER_SMS_ENABLED=True, PORTAL_ENABLED=True, OWNER_MFA_METHOD='sms', OWNER_MFA_REQUIRED=True,
     OWNER_SMS_PHONE='+2348166017588',
     STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class SMSMFATests(TestCase):
@@ -122,3 +122,22 @@ class SMSMFATests(TestCase):
         with patch('academy.sms_mfa.send_mail', side_effect=EmailDeliveryError('Email not accepted')):
             self.assertContains(self.client.post(self.path, {'action': 'send', 'channel': 'email'}), 'Email not accepted')
         self.assertFalse(OwnerSMSChallenge.objects.get(user=self.owner).accepted)
+
+    @override_settings(OWNER_SMS_ENABLED=False)
+    def test_disabled_sms_routes_even_forged_requests_to_email(self):
+        with patch('academy.sms_mfa.send_email_code') as email, patch('academy.sms_mfa.send_sms') as sms:
+            response=self.client.post(self.path,{'action':'send','channel':'sms'})
+            email.assert_called_once();sms.assert_not_called()
+            self.assertEqual(OwnerSMSChallenge.objects.get(user=self.owner).channel,'email')
+            self.assertNotContains(response,'<select id="delivery-channel"')
+            self.assertContains(response,'Email accepted for sending')
+            code=email.call_args.args[1]
+        self.client.post(self.path,{'action':'verify','token':code})
+        self.assertEqual(self.client.get('/owner/').status_code,200)
+
+    @override_settings(OWNER_SMS_ENABLED=False)
+    def test_sms_transport_is_blocked(self):
+        from .sms_mfa import send_sms
+        with patch('academy.sms_mfa.urlopen') as network:
+            with self.assertRaises(SMSDeliveryError): send_sms('123456')
+            network.assert_not_called()

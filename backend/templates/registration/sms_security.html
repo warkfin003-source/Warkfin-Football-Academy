@@ -1,18 +1,18 @@
 {% extends 'base.html' %}{% block title %}Sign-in verification · Warkfin Academy{% endblock %}{% block content %}
 {# Status is derived from the provider response and server challenge, never a timer. #}
 <section class="panel narrow sms-panel" aria-labelledby="sms-title">
-<div class="sms-banner"><span class="sms-shield" aria-hidden="true">✓</span><p class="eyebrow">Private owner access</p><h1 id="sms-title">One code.<br>Secure access.</h1><p>Choose email or SMS to finish signing in.</p></div>
+<div class="sms-banner"><span class="sms-shield" aria-hidden="true">✓</span><p class="eyebrow">Private owner access</p><h1 id="sms-title">One code.<br>Secure access.</h1><p>{% if sms_enabled %}Choose email or SMS to finish signing in.{% else %}Use the code sent to your email to finish signing in.{% endif %}</p></div>
 <div class="sms-body">
 <ol class="sms-steps" aria-label="Sign-in progress"><li class="complete">1 · Password checked</li><li aria-current="step">2 · Enter your code</li></ol>
-<p class="sms-destination">Your registered contact details<br><strong>{{ email_address }}</strong><small>Phone ending in {{ phone_suffix }}</small></p>
+<p class="sms-destination">Your registered contact details<br><strong>{{ email_address }}</strong>{% if sms_enabled %}<small>Phone ending in {{ phone_suffix }}</small>{% endif %}</p>
 {% if error %}<div class="sms-status sms-error" role="alert"><strong>Code could not be sent</strong><p>{{ error }}</p><small>No new code was sent by this request.</small></div>
 {% elif pending %}<div class="sms-status sms-success" role="status"><strong>{% if pending_channel == "email" %}Email{% else %}SMS{% endif %} accepted for sending</strong><p>{% if notice %}{{ notice }}{% else %}Your latest code is ready to enter when it arrives.{% endif %}</p><small>Delivery to your {% if pending_channel == "email" %}inbox{% else %}phone{% endif %} has not yet been confirmed.</small></div>
 {% else %}<div class="sms-status" role="status"><strong>Ready to send your code</strong><p>Request a fresh six-digit code. It expires after five minutes.</p></div>{% endif %}
 <form method="post" data-sms-send>{% csrf_token %}<input type="hidden" name="action" value="send">
-<label for="delivery-channel">Where should we send your code?</label>
-<select id="delivery-channel" name="channel"><option value="email" {% if channel == 'email' %}selected{% endif %}>Email · {{ email_address }}</option><option value="sms" {% if channel == 'sms' %}selected{% endif %}>SMS · phone ending {{ phone_suffix }}</option></select>
+{% if sms_enabled %}<label for="delivery-channel">Where should we send your code?</label>
+<select id="delivery-channel" name="channel"><option value="email" {% if channel == 'email' %}selected{% endif %}>Email · {{ email_address }}</option><option value="sms" {% if channel == 'sms' %}selected{% endif %}>SMS · phone ending {{ phone_suffix }}</option></select>{% else %}<input type="hidden" name="channel" value="email"><p>Your code will be sent to your registered email address.</p>{% endif %}
 <button class="sms-send" data-cooldown="{{ cooldown }}" data-idle-label="{% if pending %}Send a new code{% else %}Send verification code{% endif %}">{% if pending %}Send a new code{% else %}Send verification code{% endif %}</button><p class="sms-progress" data-send-status role="status"></p></form>
 <div class="sms-code-section"><form method="post" data-sms-verify>{% csrf_token %}<input type="hidden" name="action" value="verify">{{ form.as_p }}<button>Verify &amp; open dashboard</button></form><small>Only the newest code works in the browser that requested it.</small></div>
-<details class="sms-help"><summary>Didn’t receive a message?</summary><p>For email, check your inbox and spam folder. For SMS, check your mobile signal and text-message inbox. Wait at least 60 seconds before requesting another code. A new request replaces the previous code.</p><p>If you see “Code could not be sent”, follow the error instructions. Repeated requests will not fix a provider account restriction.</p></details>
+<details class="sms-help"><summary>Didn’t receive a message?</summary><p>Check your email inbox and spam folder. SMS verification is disabled. Wait at least 60 seconds before requesting another code. A new request replaces the previous code.</p><p>If you see “Code could not be sent”, follow the error instructions. Repeated requests will not fix a provider account restriction.</p></details>
 <p class="sms-private">Never share your code. No authenticator app or QR code is needed.</p>
 </div></section>{% endblock %}
