@@ -1,3 +1,38 @@
+# Current release — 26 October 2026
+
+This section supersedes all historical setup and launch instructions below.
+
+## Implemented
+
+- Public website links to the deployed member portal and public schedule.
+- Password login, email verification/reset, and owner email-code second factor.
+- SMS is hard-disabled. No paid upgrades or merchant requests are authorized.
+- Owner management, audit trail, player review, coach self-registration and owner-controlled squad access.
+- Role-specific dashboards, one-time welcome, private feedback/attendance, application decisions.
+- Upcoming/history training pagination; private/shared calendars; explicitly published public events; ICS exports.
+- In-app notifications, review decisions, action links, personal read state and revised-message unread state.
+- Server-priced registration and dues integration, private receipts and owner-recorded external refunds.
+- Coach-only and owner accounts are not charged player registration fees. Approved dual-role players retain dues access.
+
+## Not operational or not verified
+
+- Automatic payment collection and refunds: disabled. No approved merchant credentials or real payment test. No merchant-access request will be made.
+- New player application submission requires verified registration payment and therefore cannot complete while checkout is unavailable. Existing accounts remain accessible. No invented payment or approval bypass.
+- Coach registration does not require player fees but still requires email verification and owner approval.
+- Full phone/tablet visual QA and a new-player production email/application/approval round trip remain unverified; automated tests do not replace them.
+- Recurring durable backups and scheduled cleanup remain outstanding on current hosting. Historical recovery checkpoints are not recurring backups.
+- Notifications are in-app, not automatic outbound email/SMS/push reminders.
+
+## Owner use
+
+Sign in at https://warkfin-academy-portal.onrender.com/ using the owner account.
+Use Owner controls for player/coach reviews, squads, training, announcements, calendar events and audit records.
+For public events, select Published and Public without a squad or private recipient.
+Private recipient events must never be marked public. Individual player records remain private.
+Refund recording acknowledges a separately completed provider transaction; it never transfers money.
+
+## Historical record (not current operating instructions)
+
 # Initial registration release — 23 October 2026
 
 This current status supersedes the historical opening instructions below.

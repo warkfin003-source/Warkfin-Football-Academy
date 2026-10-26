@@ -26,12 +26,19 @@ class DuesForm(forms.Form):
     months = forms.TypedChoiceField(coerce=int, choices=[(n,f'{n} month'+('s' if n>1 else '')+f' — ₦{n*3000:,}') for n in payments.MONTH_OPTIONS])
 
 
+def player_fees_apply(user):
+    """Coach onboarding is not a player purchase; approved dual-role players retain billing."""
+    if user.is_superuser: return False
+    if approved_player(user): return True
+    return not (user.onboarding_role=='coach' or user.coached_squads.exists() or hasattr(user,'coach_application'))
+
+
 @login_required
 def billing(request):
     # Queries are always bound to the signed-in member, never a submitted user ID.
     return render(request,'billing.html',{'orders':PaymentOrder.objects.filter(user=request.user).order_by('-created_at'),
         'dues':DuesMonth.objects.filter(user=request.user).select_related('payment'),
-        'paid':payments.registration_paid(request.user),'ready':payments.ready(),
+        'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
         'dues_form':DuesForm(initial={'start_month':timezone.localdate().replace(day=1)}),
         'can_pay_dues':bool(approved_player(request.user)), 'terms':settings.PAYMENT_TERMS})
 
@@ -39,6 +46,7 @@ def billing(request):
 @login_required
 @require_POST
 def checkout(request):
+    if not player_fees_apply(request.user): return HttpResponseForbidden('Player fees do not apply to this coach or owner account.')
     if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
     if not payments.ready():
         messages.warning(request,'Online payment is awaiting activation. Do not transfer money yet.')

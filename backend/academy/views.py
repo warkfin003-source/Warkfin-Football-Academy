@@ -96,6 +96,8 @@ def application(request):
     existing=Application.objects.filter(user=request.user).first()
     if existing and existing.status in ('approved','declined'):
         return render(request,'application_status.html',{'application':existing})
+    from .payments import registration_paid, ready
+    submission_blocked=not registration_paid(request.user) and not ready()
     form=ApplicationForm(request.POST or None,instance=existing)
     if request.method=='POST' and form.is_valid():
         from .payments import registration_paid
@@ -106,7 +108,7 @@ def application(request):
         audit(request.user,'application.submitted',obj)
         messages.success(request,'Application submitted for owner review.')
         return redirect('dashboard')
-    return render(request,'form.html',{'title':'Academy application','form':form,'button':'Submit application','application_form':True})
+    return render(request,'form.html',{'title':'Academy application','form':form,'button':'Submit application','application_form':True,'submission_blocked':submission_blocked})
 
 # Filter every queryset on the server. Hiding a template section is not an access-control mechanism.
 @login_required
