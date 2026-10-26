@@ -207,7 +207,7 @@ def notification_items(user):
     for a in AppointmentRequest.objects.filter(user=user).order_by('-created_at')[:20]:
         items.append({'key':f'appointment:{a.pk}:{a.status}','title':f'Appointment with {a.coach.nickname}: {a.get_status_display()}', 'body':a.reply or {'pending':'Your request is awaiting review. This is not a confirmed appointment.', 'confirmed':'Your appointment is confirmed. Check your private calendar for the agreed details.', 'declined':'This appointment request was declined. You can request another suitable time.'}[a.status]})
     coach_app=getattr(user,'coach_application',None)
-    if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and not payments.registration_paid(user):
+    if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and user.onboarding_role!='coach' and not payments.registration_paid(user):
         items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Registration cannot be completed until payment is verified. Online payments are awaiting activation.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.'})
     if approved_player(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
         items.append({'key':'dues:'+timezone.localdate().strftime('%Y-%m'),'title':'Monthly dues: ₦3,000','body':'No verified payment is recorded for this month. Check Payments & receipts.'})

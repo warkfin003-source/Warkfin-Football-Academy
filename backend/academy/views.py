@@ -51,7 +51,9 @@ def signup(request):
     coach_signup=request.GET.get('role')=='coach'
     form=SignUpForm(request.POST or None)
     if request.method=='POST' and form.is_valid():
-        user=form.save()
+        user=form.save(commit=False)
+        user.onboarding_role="coach" if coach_signup else "player"
+        user.save()
         login(request,user)
         try:
             send_verification(user)
@@ -124,6 +126,7 @@ def dashboard(request):
         context.update(role='Player' if player else 'Applicant',player=player)
         if player:
             context.update(sessions=TrainingSession.objects.filter(squad_id=player.squad_id,starts_at__gte=timezone.now()).order_by('starts_at')[:20],attendance=Attendance.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:30],feedback=Feedback.objects.filter(player=player,shared_with_player=True).order_by('-created_at')[:20],availability=Availability.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:20])
+    context['coach_onboarding']=bool(not context.get('player') and (user.onboarding_role=='coach' or context['coach_application']))
     if context['role']!='Applicant':
         allowed=Q(squad__isnull=True)
         if user.is_superuser: allowed=Q()

@@ -8,6 +8,8 @@ from django.core.exceptions import ValidationError
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     email_verified = models.BooleanField(default=False)
+    # Onboarding preference only: this field never grants coaching or admin access.
+    onboarding_role = models.CharField(max_length=10, default="player", choices=[("player", "Player"), ("coach", "Coach")])
     class Meta:
         constraints = [models.UniqueConstraint(Lower('email'), name='email_case_insensitive_unique')]
 
