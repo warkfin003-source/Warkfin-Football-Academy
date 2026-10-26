@@ -77,3 +77,14 @@ class TransferTests(TestCase):
         self.client.force_login(self.owner)
         self.client.post('/owner/transfers/settings/',{'bank_name':'Test','account_name':'Name','account_number':'bad','payment_terms':'Terms','enabled':'on','confirmed':'on'})
         self.config.refresh_from_db();self.assertEqual(self.config.account_number,'1234567890')
+
+    def test_transfer_report_cannot_also_start_gateway_checkout(self):
+        claim=self.report()
+        with patch('academy.payments.provider_request') as provider:
+            with self.assertRaises(payments.PaymentUnavailable): payments.start_checkout(claim.order)
+            provider.assert_not_called()
+    def test_completed_order_cannot_start_checkout_again(self):
+        order=PaymentOrder.objects.create(user=self.user,purpose='registration',amount_kobo=500000,status='paid')
+        with patch('academy.payments.provider_request') as provider:
+            with self.assertRaises(payments.PaymentUnavailable): payments.start_checkout(order)
+            provider.assert_not_called()

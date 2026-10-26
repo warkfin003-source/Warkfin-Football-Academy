@@ -127,6 +127,11 @@ def make_order(user, purpose, start=None, months=0):
 
 
 def start_checkout(order):
+    # Never open a second payment channel for a reported transfer or completed order.
+    if hasattr(order,'transfer_claim'):
+        raise PaymentUnavailable('This transfer is already under owner review. Do not pay again.')
+    if order.status!='pending':
+        raise PaymentUnavailable('This order is no longer awaiting payment.')
     if order.checkout_url: return order.checkout_url
     result = provider_request('/api/v2/payment/merchant/createorder', {
         'orderId':order.reference.hex, 'amount':order.amount_kobo, 'currency':'NGN',

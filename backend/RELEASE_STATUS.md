@@ -23,6 +23,13 @@ This section supersedes all historical setup and launch instructions below.
 - Recurring durable backups and scheduled cleanup remain outstanding on current hosting. Historical recovery checkpoints are not recurring backups.
 - Notifications are in-app, not automatic outbound email/SMS/push reminders.
 
+## Handover status — 26 October 2026
+
+The live receiving-account configuration has been saved and enabled by the owner. A read-only check confirmed that the account number has ten digits and the name/terms are present; bank ownership was not independently verified. No real transfer was made or approved during testing.
+The live desktop login page was visually inspected. Full phone/tablet and authenticated workflow visual checks remain outstanding.
+The owner reviews reported transfers at /owner/transfers/. Only confirm after checking the actual receiving account. Approval produces a receipt and allocates dues; registration payment then unlocks application submission, followed by a separate admission decision.
+Manual transfer orders cannot also be opened in automatic checkout. Completed orders cannot be charged again through that entry point.
+
 ## Validation
 
 120 automated tests passed before final receipt-instruction snapshot additions; targeted transfer, notification and owner tests are also run after those additions. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
