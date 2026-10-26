@@ -32,7 +32,11 @@ Manual transfer orders cannot also be opened in automatic checkout. Completed or
 
 ## Validation
 
-120 automated tests passed before final receipt-instruction snapshot additions; targeted transfer, notification and owner tests are also run after those additions. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
+125 automated tests passed, including owner-only cleanup, CSRF protection, and preservation of active sessions and financial records. Django reported no pending model migrations. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
+
+## Operations guide update — 26 October 2026
+
+Owner controls now link to /owner/operations/, a compact guide for player and coach onboarding, transfer verification, dues, refunds, announcements and private schedules. An explicit, CSRF-protected owner action removes only expired sessions and rate counters and writes an audit entry. GET requests never clean records. This is manual maintenance, not a scheduled job or backup.
 
 ## Owner use
 

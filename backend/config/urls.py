@@ -16,6 +16,7 @@ urlpatterns=[
     path('schedule/',public_views.schedule,name='public-schedule'),
     path('coach/profile/edit/',coach_views.edit_profile,name='coach-profile-edit'),
     path('owner/',owner_views.workspace,name='owner-workspace'),
+    path('owner/operations/',owner_views.operations,name='owner-operations'),
     path('owner/setup/',owner_views.setup,name='owner-setup'),
     path('owner/refunds/<int:pk>/',owner_views.refund,name='owner-refund'),
     path('payments/',member_views.billing,name='billing'),

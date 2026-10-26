@@ -339,3 +339,6 @@ footer a {
 
 /* Persistent welcome card shown once after login, with no forced popup or animation. */
 .welcome-panel{border-top:5px solid #c4a45d;background:linear-gradient(130deg,#fff,#edf6f0);box-shadow:0 6px 0 #d5e3dc,0 16px 30px #10283c12}.welcome-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:24px}.welcome-grid>div{border-top:1px solid #cbdcd3;padding-top:12px;overflow-wrap:anywhere}.welcome-panel h2{font-size:clamp(1.5rem,4vw,2.1rem)}@media(max-width:760px){.welcome-grid{grid-template-columns:1fr;gap:12px}}
+
+/* Compact owner runbook: readable touch targets, wrapping links and visible focus. */
+.operations-guide details{border-top:1px solid #d4e3df;padding:1rem 0;overflow-wrap:anywhere}.operations-guide summary{cursor:pointer;font-weight:750;padding:.5rem 0;min-height:44px}.operations-guide summary:focus-visible{outline:3px solid #16856b;outline-offset:4px}.operations-guide li{margin:.7rem 0;line-height:1.6}

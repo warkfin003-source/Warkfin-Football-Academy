@@ -62,3 +62,27 @@ def refund(request,pk):
         messages.success(request,'Refund record updated. This action does not move money.')
         return redirect('owner-workspace')
     return render(request,'owner_refund.html',{'refund':obj,'form':form})
+
+
+@owner_required
+def operations(request):
+    """Owner-only runbook and explicit cleanup of expired technical records."""
+    from django.contrib.sessions.models import Session
+    from .models import RateBucket
+    now = timezone.now()
+    if request.method == 'POST':
+        # A CSRF-protected, explicit action cannot erase players, payments or live sessions.
+        if request.POST.get('action') != 'cleanup' or request.POST.get('confirmed') != 'yes':
+            messages.error(request, 'Confirm removal of expired records before continuing.')
+        else:
+            with transaction.atomic():
+                counters, _ = RateBucket.objects.filter(expires_at__lt=now).delete()
+                sessions, _ = Session.objects.filter(expire_date__lt=now).delete()
+                audit(request.user, 'maintenance.expired_records_removed', request.user)
+            messages.success(request, f'Cleanup complete: {counters} expired counters and {sessions} expired sessions removed.')
+        return redirect('owner-operations')
+    return render(request, 'owner_operations.html', {
+        'expired_counters': RateBucket.objects.filter(expires_at__lt=now).count(),
+        'expired_sessions': Session.objects.filter(expire_date__lt=now).count(),
+        'last_cleanup': AuditEvent.objects.filter(action='maintenance.expired_records_removed').order_by('-created_at').first(),
+    })
