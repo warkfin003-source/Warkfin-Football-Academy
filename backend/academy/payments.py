@@ -141,11 +141,15 @@ def start_checkout(order):
     return url
 
 
-def settle(order, data):
-    """Called only after a provider-signed callback AND server-to-server requery."""
+def settle(order, data, *, manual_actor=None):
+    """Credit verified evidence from the provider or the owner-only transfer review."""
     with transaction.atomic():
         User.objects.select_for_update().get(pk=order.user_id)
         order = PaymentOrder.objects.select_for_update().get(pk=order.pk)
+        manual=hasattr(order,'transfer_claim')
+        if manual and (manual_actor is None or not manual_actor.is_active or not manual_actor.is_superuser):
+            raise ValueError('This transfer requires owner verification.')
+        if manual_actor is not None and not manual: raise ValueError('No manual transfer report exists.')
         if (str(data.get('orderId')) != order.reference.hex or data.get('currency') != 'NGN'
             or type(data.get('amount')) is not int or data['amount'] != order.amount_kobo
             or not data.get('orderNo')):
@@ -161,7 +165,7 @@ def settle(order, data):
                 if DuesMonth.objects.filter(user=order.user,month__in=months).exists(): raise ValueError('Duplicate dues coverage')
                 DuesMonth.objects.bulk_create([DuesMonth(user=order.user,month=m,payment=order) for m in months])
             order.status='paid'; order.paid_at=timezone.now(); order.provider_reference=data['orderNo']
-            AuditEvent.objects.create(action='payment.verified',object_reference=f'paymentorder:{order.pk}')
+            AuditEvent.objects.create(actor=manual_actor,action='payment.owner_verified' if manual else 'payment.verified',object_reference=f'paymentorder:{order.pk}')
         elif state in (3,4): order.status='failed' if state==3 else 'closed'
         order.save()
         return order

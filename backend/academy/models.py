@@ -253,3 +253,35 @@ class NotificationRead(models.Model):
     key = models.CharField(max_length=100)
     class Meta:
         constraints = [models.UniqueConstraint(fields=['user','key'],name='unique_notification_read')]
+
+
+class TransferSettings(models.Model):
+    """One owner-managed receiving account; incomplete instructions never accept reports."""
+    bank_name=models.CharField(max_length=80,default='PalmPay')
+    account_name=models.CharField(max_length=160)
+    account_number=models.CharField(max_length=10)
+    payment_terms=models.TextField(max_length=3000)
+    enabled=models.BooleanField(default=False)
+    updated_at=models.DateTimeField(auto_now=True)
+    def clean(self):
+        if len(self.account_number)!=10 or not self.account_number.isascii() or not self.account_number.isdigit():
+            raise ValidationError({'account_number':'Enter the ten-digit receiving account number.'})
+    def save(self,*args,**kwargs):
+        self.pk=1
+        super().save(*args,**kwargs)
+
+
+class TransferClaim(models.Model):
+    """A member's report is not payment evidence until the owner checks the bank record."""
+    order=models.OneToOneField(PaymentOrder,on_delete=models.PROTECT,related_name='transfer_claim')
+    sender_name=models.CharField(max_length=160)
+    destination=models.CharField(max_length=300)
+    accepted_terms=models.TextField(max_length=3000)
+    reported_reference=models.CharField(max_length=120)
+    transfer_date=models.DateField()
+    status=models.CharField(max_length=12,default='pending',choices=[('pending','Awaiting owner verification'),('approved','Verified by owner'),('declined','Not verified')])
+    review_note=models.CharField(max_length=500,blank=True)
+    verified_reference=models.CharField(max_length=120,blank=True)
+    reviewed_by=models.ForeignKey(User,null=True,blank=True,on_delete=models.PROTECT)
+    reviewed_at=models.DateTimeField(null=True,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)

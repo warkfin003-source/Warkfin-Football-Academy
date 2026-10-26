@@ -11,17 +11,21 @@ This section supersedes all historical setup and launch instructions below.
 - Role-specific dashboards, one-time welcome, private feedback/attendance, application decisions.
 - Upcoming/history training pagination; private/shared calendars; explicitly published public events; ICS exports.
 - In-app notifications, review decisions, action links, personal read state and revised-message unread state.
-- Server-priced registration and dues integration, private receipts and owner-recorded external refunds.
+- Server-priced registration and dues integration, private receipts and owner-recorded external refunds. Manual transfer reports require an exact received amount, confirmed receiving-bank reference, owner verification and duplicate-reference checks. Receipts explicitly identify owner verification. Reports preserve the receiving instructions and terms accepted.
 - Coach-only and owner accounts are not charged player registration fees. Approved dual-role players retain dues access.
 
 ## Not operational or not verified
 
-- Automatic payment collection and refunds: disabled. No approved merchant credentials or real payment test. No merchant-access request will be made.
-- New player application submission requires verified registration payment and therefore cannot complete while checkout is unavailable. Existing accounts remain accessible. No invented payment or approval bypass.
+- Automatic payment collection and refunds: disabled. No approved merchant credentials or real payment test. No merchant-access request will be made. The owner selected manual transfer verification on 26 October.
+- New player submission requires verified registration payment. The owner can now verify a reported bank transfer to unlock submission, without merchant checkout. Receiving account details and terms must first be entered in /owner/transfers/settings/. No invented account details or approval bypass.
 - Coach registration does not require player fees but still requires email verification and owner approval.
 - Full phone/tablet visual QA and a new-player production email/application/approval round trip remain unverified; automated tests do not replace them.
 - Recurring durable backups and scheduled cleanup remain outstanding on current hosting. Historical recovery checkpoints are not recurring backups.
 - Notifications are in-app, not automatic outbound email/SMS/push reminders.
+
+## Validation
+
+120 automated tests passed before final receipt-instruction snapshot additions; targeted transfer, notification and owner tests are also run after those additions. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
 
 ## Owner use
 

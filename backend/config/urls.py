@@ -1,7 +1,7 @@
 """Route map for public health checks, account flows and permission-checked academy views."""
 from django.urls import path, include
 from django.contrib.auth import views as auth
-from academy import public_views
+from academy import public_views, transfers
 from academy.welcome import AcademyLoginView
 from academy import views, mfa, member_views, coach_views, owner_views
 from academy.admin import site
@@ -9,6 +9,10 @@ from academy.forms import EmailLoginForm
 from academy.owner_activation import OwnerActivationView
 
 urlpatterns=[
+    path('payments/transfer/',transfers.report,name='transfer-report'),
+    path('owner/transfers/',transfers.queue,name='owner-transfers'),
+    path('owner/transfers/settings/',transfers.settings_page,name='transfer-settings'),
+    path('owner/transfers/<int:pk>/',transfers.review,name='transfer-review'),
     path('schedule/',public_views.schedule,name='public-schedule'),
     path('coach/profile/edit/',coach_views.edit_profile,name='coach-profile-edit'),
     path('owner/',owner_views.workspace,name='owner-workspace'),

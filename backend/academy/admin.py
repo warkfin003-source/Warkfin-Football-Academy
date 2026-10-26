@@ -177,3 +177,14 @@ class EventAdmin(PublishingAdmin):
     date_hierarchy='starts_at'
 site.unregister(AcademyEvent)
 site.register(AcademyEvent,EventAdmin)
+
+
+# Completed transfer reports are retained for financial review; approval uses the dedicated owner workflow.
+from .models import TransferClaim
+class TransferClaimAdmin(LoggedAdmin):
+    list_display=('id','sender_name','status','created_at','reviewed_at')
+    list_filter=('status',)
+    search_fields=('sender_name','reported_reference','verified_reference','order__user__email')
+    readonly_fields=tuple(field.name for field in TransferClaim._meta.fields)
+    def has_add_permission(self,request): return False
+site.register(TransferClaim,TransferClaimAdmin)

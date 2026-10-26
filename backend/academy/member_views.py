@@ -35,10 +35,11 @@ def player_fees_apply(user):
 
 @login_required
 def billing(request):
+    from .transfers import configuration
     # Queries are always bound to the signed-in member, never a submitted user ID.
     return render(request,'billing.html',{'orders':PaymentOrder.objects.filter(user=request.user).order_by('-created_at'),
         'dues':DuesMonth.objects.filter(user=request.user).select_related('payment'),
-        'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
+        'transfer_config':configuration(),'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
         'dues_form':DuesForm(initial={'start_month':timezone.localdate().replace(day=1)}),
         'can_pay_dues':bool(approved_player(request.user)), 'terms':settings.PAYMENT_TERMS})
 
@@ -76,6 +77,9 @@ def checkout(request):
 @require_POST
 def refresh_payment(request,pk):
     order=get_object_or_404(PaymentOrder,pk=pk,user=request.user)
+    if hasattr(order,'transfer_claim'):
+        messages.info(request,'This transfer is awaiting owner review. Do not pay again.')
+        return redirect('billing')
     try:
         if order.status!='paid': payments.reconcile(order)
         messages.info(request,'Payment status checked. Receipts appear only for verified successful payments.')
@@ -214,9 +218,15 @@ def notification_items(user):
             'body':f'{timezone.localtime(s.starts_at):%d %b %Y, %H:%M} WAT · {s.venue} · {s.get_status_display()}'})
     for a in AppointmentRequest.objects.filter(user=user).order_by('-created_at')[:20]:
         items.append({'key':f'appointment:{a.pk}:{a.status}','title':f'Appointment with {a.coach.nickname}: {a.get_status_display()}', 'body':a.reply or {'pending':'Your request is awaiting review. This is not a confirmed appointment.', 'confirmed':'Your appointment is confirmed. Check your private calendar for the agreed details.', 'declined':'This appointment request was declined. You can request another suitable time.'}[a.status]})
+    from .models import TransferClaim
+    for claim in TransferClaim.objects.filter(order__user=user).select_related('order').order_by('-created_at')[:20]:
+        items.append({'key':f'transfer:{claim.pk}:{claim.status}','title':f'Transfer: {claim.get_status_display()}',
+            'body':claim.review_note or 'Open Payments & receipts for the payment record. A pending report is not a receipt.'})
+    from .transfers import configuration
+    transfer_available=bool(configuration())
     coach_app=getattr(user,'coach_application',None)
     if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and user.onboarding_role!='coach' and not payments.registration_paid(user):
-        items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Registration cannot be completed until payment is verified. Online payments are awaiting activation.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.'})
+        items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Open Payments & receipts to report a bank transfer for owner verification.' if transfer_available else ('Registration cannot be completed until payment is verified. Payment instructions are not available yet.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.')})
     if approved_player(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
         items.append({'key':'dues:'+timezone.localdate().strftime('%Y-%m'),'title':'Monthly dues: ₦3,000','body':'No verified payment is recorded for this month. Check Payments & receipts.'})
     # Review decisions are private, actionable updates, never public announcements.
@@ -229,7 +239,7 @@ def notification_items(user):
         items.append({'key':f'player-review:{application.pk}:{application.status}',
             'title':f'Player application: {application.get_status_display()}',
             'body':'Open your application to view the decision and any corrections requested.'})
-    destinations={'news':('dashboard','View academy news'), 'event':('calendar','Open my calendar'),
+    destinations={'transfer':('billing','View transfer & receipt'),'news':('dashboard','View academy news'), 'event':('calendar','Open my calendar'),
         'training':('calendar','View training schedule'), 'appointment':('coaches','View appointment'),
         'coach-review':('coach-apply','View coach profile'), 'player-review':('application','View application'),
         'registration-fee':('billing','View payment status'), 'dues':('billing','View dues & receipts')}

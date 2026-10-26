@@ -64,7 +64,8 @@ def signup(request):
             messages.warning(request,'Account created, but email delivery failed. Use Resend verification or contact the academy.')
         return redirect('dashboard')
     from .payments import ready
-    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account','registration_notice':not coach_signup,'coach_notice':coach_signup,'payment_ready':ready()})
+    from .transfers import configuration
+    return render(request,'form.html',{'form':form,'title':'Create your account','button':'Create account','registration_notice':not coach_signup,'coach_notice':coach_signup,'payment_ready':ready() or bool(configuration())})
 
 # Require a CSRF-protected POST; middleware rate-limits account endpoints.
 @login_required
@@ -97,7 +98,8 @@ def application(request):
     if existing and existing.status in ('approved','declined'):
         return render(request,'application_status.html',{'application':existing})
     from .payments import registration_paid, ready
-    submission_blocked=not registration_paid(request.user) and not ready()
+    from .transfers import configuration
+    submission_blocked=not registration_paid(request.user) and not ready() and not configuration()
     form=ApplicationForm(request.POST or None,instance=existing)
     if request.method=='POST' and form.is_valid():
         from .payments import registration_paid
