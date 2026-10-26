@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core import signing
+from django.core.paginator import Paginator
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q, Max
@@ -94,7 +95,7 @@ def application(request):
     if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
     existing=Application.objects.filter(user=request.user).first()
     if existing and existing.status in ('approved','declined'):
-        return render(request,'notice.html',{'title':'Application reviewed','text':'Contact the coordinator to correct your approved profile or discuss your application.'})
+        return render(request,'application_status.html',{'application':existing})
     form=ApplicationForm(request.POST or None,instance=existing)
     if request.method=='POST' and form.is_valid():
         from .payments import registration_paid
@@ -117,17 +118,22 @@ def dashboard(request):
     from .payments import registration_paid
     from .models import CoachApplication
     context={'coach_application':CoachApplication.objects.filter(user=user).first(),'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}
-    if user.is_superuser:
-        context.update(role='Owner',coach_applications=CoachApplication.objects.filter(status='pending'),applications=Application.objects.filter(status='pending'),players=Player.objects.select_related('squad').all(),sessions=TrainingSession.objects.order_by('-starts_at')[:20])
-    elif user.email_verified and user.coached_squads.exists():
-        context.update(role='Coach',players=Player.objects.filter(squad__coaches=user,active=True).distinct(),sessions=TrainingSession.objects.filter(squad__coaches=user).distinct().order_by('-starts_at')[:20])
+    if user.email_verified and user.coached_squads.exists():
+        context.update(role='Coach',players=Player.objects.filter(squad__coaches=user,active=True).distinct())
     else:
         player=approved_player(user)
         context.update(role='Player' if player else 'Applicant',player=player)
         if player:
-            context.update(sessions=TrainingSession.objects.filter(squad_id=player.squad_id,starts_at__gte=timezone.now()).order_by('starts_at')[:20],attendance=Attendance.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:30],feedback=Feedback.objects.filter(player=player,shared_with_player=True).order_by('-created_at')[:20],availability=Availability.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:20])
+            context.update(attendance=Attendance.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:30],feedback=Feedback.objects.filter(player=player,shared_with_player=True).order_by('-created_at')[:20],availability=Availability.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:20])
     context['coach_onboarding']=bool(not context.get('player') and (user.onboarding_role=='coach' or context['coach_application']))
     if context['role']!='Applicant':
+        # Reuse authorization filters before paginating either upcoming or past sessions.
+        from .member_views import visible_sessions
+        scope='history' if request.GET.get('sessions')=='history' else 'upcoming'
+        sessions=visible_sessions(user)
+        sessions=sessions.filter(starts_at__lt=timezone.now()).order_by('-starts_at','-pk') if scope=='history' else sessions.filter(starts_at__gte=timezone.now()).order_by('starts_at','pk')
+        page=Paginator(sessions,10).get_page(request.GET.get('page'))
+        context.update(sessions=page,session_scope=scope,session_page=page)
         allowed=Q(squad__isnull=True)
         if user.is_superuser: allowed=Q()
         elif context['role']=='Coach': allowed|=Q(squad__coaches=user)
