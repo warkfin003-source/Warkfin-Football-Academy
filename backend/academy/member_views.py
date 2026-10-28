@@ -119,7 +119,7 @@ def receipt(request,pk):
 @login_required
 def acceptance(request):
     application=get_object_or_404(Application,user=request.user,status='approved')
-    if not payments.registration_paid(request.user): return HttpResponseForbidden('A verified registration payment is required for this slip.')
+    if not payments.registration_paid(request.user): return HttpResponseForbidden('Your registration payment must be confirmed before you can view your Acceptance Letter.')
     return render(request,'acceptance.html',{'application':application,'player':approved_player(request.user)})
 
 
