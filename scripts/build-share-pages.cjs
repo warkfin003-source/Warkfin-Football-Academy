@@ -42,6 +42,11 @@ const d="Saturday, 17 October 2026: Squad B 3–0 Squad A. Explore training and 
 const v={'description':d,'og:description':d,'twitter:description':d,'og:image':base+'assets/training/2026-10-17/action-01.jpg','og:image:secure_url':base+'assets/training/2026-10-17/action-01.jpg','twitter:image':base+'assets/training/2026-10-17/action-01.jpg','og:image:alt':'Action from training and the welcome friendly on 17 October 2026','twitter:image:alt':'Action from training and the welcome friendly on 17 October 2026'};
 s=s.replace(/<meta (name|property)="([^"]+)" content="[^"]*">/g,(tag,a,k)=>k in v?'<meta '+a+'="'+k+'" content="'+escape(v[k])+'">':tag).replace(/<meta property="og:image:(width|height)" content="[^"]*">/g,'');
 }
+// Keep current training previews consistent when regenerating the shared pages.
+if(['home','training-hub','updates','activities','contact'].includes(id)){
+ const currentTraining="Thursday training: 29 October 2026 at 3:30 p.m. WAT. Venue: Behind Hall 4 (Male Hostel), Malabor. Complete football kit required. Bring drinking water and arrive early.";
+ s=s.replace(/<meta (name|property)="(description|og:description|twitter:description)" content="[^"]*">/g,(tag,a,k)=>'<meta '+a+'="'+k+'" content="'+escape(currentTraining)+'">');
+}
 if(id==='updates')fs.writeFileSync(path.join(root,'training-news.html'),s.replaceAll(base+'updates.html',base+'training-news.html'));
 fs.writeFileSync(path.join(root,file),s);
 }
