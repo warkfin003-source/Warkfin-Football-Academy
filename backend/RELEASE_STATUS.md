@@ -19,20 +19,42 @@ This section supersedes all historical setup and launch instructions below.
 - Automatic payment collection and refunds: disabled. No approved merchant credentials or real payment test. No merchant-access request will be made. The owner selected manual transfer verification on 26 October.
 - New player submission requires verified registration payment. The owner can now verify a reported bank transfer to unlock submission, without merchant checkout. Receiving account details and terms must first be entered in /owner/transfers/settings/. No invented account details or approval bypass.
 - Coach registration does not require player fees but still requires email verification and owner approval.
-- Full phone/tablet visual QA and a new-player production email/application/approval round trip remain unverified; automated tests do not replace them.
+- Representative portal layout checks now pass at six phone/tablet widths; this is not certification of every physical device or browser. Owner email delivery is confirmed by received inbox messages. A new-player production admission and real bank-credit reconciliation remain unverified.
 - Recurring durable backups and scheduled cleanup remain outstanding on current hosting. Historical recovery checkpoints are not recurring backups.
 - Notifications are in-app, not automatic outbound email/SMS/push reminders.
 
 ## Handover status — 26 October 2026
 
 The live receiving-account configuration has been saved and enabled by the owner. A read-only check confirmed that the account number has ten digits and the name/terms are present; bank ownership was not independently verified. No real transfer was made or approved during testing.
-The live desktop login page was visually inspected. Full phone/tablet and authenticated workflow visual checks remain outstanding.
+The live desktop login page was visually inspected. The 29 October verification below supersedes the earlier representative phone/tablet layout limitation; real-device and production workflow limitations remain.
 The owner reviews reported transfers at /owner/transfers/. Only confirm after checking the actual receiving account. Approval produces a receipt and allocates dues; registration payment then unlocks application submission, followed by a separate admission decision.
 Manual transfer orders cannot also be opened in automatic checkout. Completed orders cannot be charged again through that entry point.
 
 ## Validation
 
 128 automated tests passed, including complete player/coach HTTP onboarding journeys, owner email-code verification, owner-only cleanup, CSRF protection, and preservation of active sessions and financial records. Django reported no pending model migrations. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
+
+## Verified evidence — 29 October 2026
+
+### Email delivery
+
+Academy sign-in messages were found in the owner inbox on 22–26 October. The latest inspected message arrived on 26 October at 08:29:46 WAT and was labelled INBOX. This proves real historical delivery to the owner Gmail address, not merely provider acceptance. No verification codes, activation links or mailbox contents are stored in this repository. No new email was sent during this verification. Delivery to every player address is not guaranteed.
+
+### Responsive portal layouts
+
+Rendered 20 actual Django template screens with synthetic test-database records and the production portal stylesheet. Measured all screens in Chromium at iframe viewport widths 320, 360, 390, 412, 768 and 1024 CSS pixels: 120 combinations. Every measured document stayed within its client width, and each measurement checked that the selected fixture URL had loaded. Classic scrollbars reduce the content width by 15 pixels where present; this is a browser viewport test, not physical-device emulation.
+
+Screens: player signup, coach signup, login; owner dashboard, billing, calendar, notifications, appointments and operations; player dashboard, billing, calendar, notifications, appointments and Acceptance Letter; coach dashboard, billing, calendar, notifications and appointments.
+
+Visual inspection caught a tablet header defect despite the overflow checks passing: owner navigation compressed the brand text. The header now wraps navigation and preserves the brand width. All 120 measurements were repeated after the fix, and the tablet owner header and phone Acceptance Letter were visually inspected. This does not claim Safari, Firefox, every physical phone, printing or interactive JavaScript coverage. The public GitHub Pages site was not part of this portal fixture matrix.
+
+### Manual-payment readiness
+
+All 14 focused transfer and full onboarding journey tests passed on 29 October using a disposable test database and local email outbox. They cover server-controlled amounts, owner-only exact-amount approval, required bank reference, prevention of double credit and repeated checkout, receipt privacy, dues allocation, declined reports, application approval and Acceptance Letters. The full application suite previously passed 128 tests.
+
+A read-only live query found no transfer reports. No real payment was made, approved or invented. The system does not connect to PalmPay banking records: the owner must verify actual received credit in the banking app before approving a report. The first genuine transfer reconciliation is an operational check, not a reason to send test money or bypass approval.
+
+Recurring backups are still not configured; this evidence does not resolve the provider's backup scheduling restriction.
 
 ## Usability corrections — 29 October 2026
 

@@ -353,3 +353,9 @@ footer a {
 .button { max-width:100%; white-space:normal; text-align:center; }
 @media(max-width:760px) { .grid { grid-template-columns:minmax(0,1fr); } header nav { width:100%; } }
 @media(max-width:360px) { .panel { padding:18px; } .brand { gap:10px; } }
+
+/* Wrap the account navigation before it can squeeze the academy name on tablets. */
+header { flex-wrap:wrap; }
+header .brand { flex-shrink:0; max-width:100%; }
+header nav { flex-basis:520px; flex-grow:1; }
+@media(max-width:760px) { header nav { flex-basis:auto; } }
