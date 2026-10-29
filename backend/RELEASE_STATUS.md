@@ -34,6 +34,13 @@ Manual transfer orders cannot also be opened in automatic checkout. Completed or
 
 128 automated tests passed, including complete player/coach HTTP onboarding journeys, owner email-code verification, owner-only cleanup, CSRF protection, and preservation of active sessions and financial records. Django reported no pending model migrations. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
 
+## Usability corrections — 29 October 2026
+
+- Secondary buttons inside light panels now use dark green text and clear selected/hover states. This fixes unreadable training-history, notification-filter and payment links without changing the dark header/hero buttons.
+- Email verification directs members to their dashboard rather than incorrectly claiming every account can submit a player application immediately.
+- Verified applicants without a confirmed registration payment see the payment/status step and an explicit instruction not to pay twice. Paid applicants see the application step. Coach onboarding remains fee-free.
+- Responsive grids allow columns to shrink, long text wraps inside cards and small-phone panel padding is reduced. Full device visual verification remains outstanding.
+
 ## Release verification — 29 October 2026
 
 - Added disposable-database HTTP journeys with CSRF enabled and a local email outbox. Player signup, email verification, reported registration transfer, owner email-code login, exact-amount bank confirmation, application approval and Acceptance Letter all pass together. Three months of dues produce three private monthly receipts; another member cannot access them.

@@ -86,7 +86,8 @@ def verify(request,token):
         return render(request,'notice.html',{'title':'Verification link unavailable','text':'Sign into the correct account or request a new verification email.'},status=400)
     if request.method=='POST':
         request.user.email_verified=True;request.user.save(update_fields=['email_verified'])
-        messages.success(request,'Email verified. You can now submit your application.')
+        # Verification confirms identity only; payment and admission have separate checks.
+        messages.success(request,'Email verified. Your dashboard shows the next step for your account.')
         return redirect('dashboard')
     return render(request,'form.html',{'title':'Confirm your email address','button':'Verify my email'})
 

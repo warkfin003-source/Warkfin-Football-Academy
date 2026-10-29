@@ -342,3 +342,14 @@ footer a {
 
 /* Compact owner runbook: readable touch targets, wrapping links and visible focus. */
 .operations-guide details{border-top:1px solid #d4e3df;padding:1rem 0;overflow-wrap:anywhere}.operations-guide summary{cursor:pointer;font-weight:750;padding:.5rem 0;min-height:44px}.operations-guide summary:focus-visible{outline:3px solid #16856b;outline-offset:4px}.operations-guide li{margin:.7rem 0;line-height:1.6}
+
+/* Secondary actions on light panels need their own contrast, including selected tabs. */
+.panel .quiet { background:#edf4f1; color:#164d3f; border:1px solid #93b7a9; }
+.panel .quiet:hover,.panel .quiet[aria-current="page"] { background:#146551; color:#fff; border-color:#146551; }
+/* Long names and notices wrap within cards; flex/grid children can shrink on phones. */
+.brand,.brand>span,header nav,.member-actions>* { min-width:0; }
+.brand small,.panel,.hero,.message,footer { overflow-wrap:anywhere; }
+.grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.button { max-width:100%; white-space:normal; text-align:center; }
+@media(max-width:760px) { .grid { grid-template-columns:minmax(0,1fr); } header nav { width:100%; } }
+@media(max-width:360px) { .panel { padding:18px; } .brand { gap:10px; } }

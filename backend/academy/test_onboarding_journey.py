@@ -47,6 +47,8 @@ class OnboardingJourneyTests(TestCase):
 
     def test_player_signup_to_acceptance_and_monthly_receipt(self):
         player,user=self.signup_and_verify('player@journey.test')
+        self.assertContains(player.get('/'),'Registration payment &amp; status')
+        self.assertContains(player.get('/'),'do not pay again')
         report={'purpose':'registration','months':'1','sender_name':'Test Player','reported_reference':'test-report','transfer_date':timezone.localdate().isoformat(),'accepted':'on'}
         self.assertEqual(self.post(player,'/payments/transfer/',report).status_code,302)
         claim=TransferClaim.objects.get(order__user=user)
@@ -56,6 +58,7 @@ class OnboardingJourneyTests(TestCase):
         self.assertEqual(self.post(owner,f'/owner/transfers/{claim.pk}/',{'decision':'approved','received_amount':'5000.00','bank_reference':'JOURNEY-REG','confirmed':'on'}).status_code,302)
         self.assertContains(player.get(f'/payments/{claim.order_id}/receipt/'),'Transfer verified by owner')
         self.assertEqual(player.get('/acceptance/').status_code,404)
+        self.assertContains(player.get('/'),'Your registration payment is confirmed.')
         form={'full_name':'Test Player','phone':'08000000000','date_of_birth':'2000-01-01','kind':'adult','occupation':'Test role','preferred_position':'CM','emergency_name':'Test Contact','emergency_relationship':'Sibling','emergency_phone':'08000000001','rules_accepted':'on','privacy_accepted':'on'}
         self.assertEqual(self.post(player,'/application/',form).status_code,302)
         app=Application.objects.get(user=user);self.assertEqual(app.status,'pending')
