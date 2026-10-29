@@ -1,4 +1,4 @@
-# Current release — 26 October 2026
+# Current release — 29 October 2026
 
 This section supersedes all historical setup and launch instructions below.
 
@@ -32,7 +32,18 @@ Manual transfer orders cannot also be opened in automatic checkout. Completed or
 
 ## Validation
 
-125 automated tests passed, including owner-only cleanup, CSRF protection, and preservation of active sessions and financial records. Django reported no pending model migrations. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
+128 automated tests passed, including complete player/coach HTTP onboarding journeys, owner email-code verification, owner-only cleanup, CSRF protection, and preservation of active sessions and financial records. Django reported no pending model migrations. No live transfer or payment has been performed. Neon reports an empty snapshot schedule; recurring backups remain outstanding.
+
+## Release verification — 29 October 2026
+
+- Added disposable-database HTTP journeys with CSRF enabled and a local email outbox. Player signup, email verification, reported registration transfer, owner email-code login, exact-amount bank confirmation, application approval and Acceptance Letter all pass together. Three months of dues produce three private monthly receipts; another member cannot access them.
+- Coach signup, email verification, profile submission and owner squad approval pass without creating a payment order. Coach access does not grant owner access.
+- All 128 tests passed. No pending model migrations. Provider-error messages in this test run are expected mocked cases, not production delivery attempts.
+- Live desktop registration was visually inspected with the updated fee explanation. Phone/tablet visual checks remain unverified: the Chromium download failed, and the available cloud browser has no viewport resizing control.
+- Neon again rejected scheduled snapshots with “backup schedule creation is not enabled for this project”. No paid plan or resource was enabled. The historical snapshot expiry was 28 October; do not describe it as a fresh backup. Recurring backups remain outstanding.
+- No real emails, bank transfers, admissions, or financial records were created by these tests. A new-player production email and bank-payment round trip remains unverified.
+- The 27 October completed training record and the 29 October 3:30 p.m. WAT training announcement are published. Public static news and portal announcements must be maintained separately.
+- Registration is ₦5,000 once; monthly training dues are ₦3,000 after admission. Approved applicants with verified registration payment can print an Acceptance Letter. Coach-only accounts remain exempt from player fees.
 
 ## Operations guide update — 26 October 2026
 
