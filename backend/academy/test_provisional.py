@@ -19,7 +19,10 @@ class ProvisionalTests(TestCase):
     def test_profile_dues_and_receipt_do_not_grant_admission(self):
         app=self.profile();self.assertEqual(app.status,'provisional')
         self.assertFalse(Player.objects.filter(user=self.user).exists())
-        self.assertContains(self.client.get('/'),'Provisional Player Account')
+        response = self.client.get('/')
+        self.assertContains(response, 'Provisional Player Account')
+        self.assertContains(response, 'Formal admission: separate from your provisional account')
+        self.assertNotContains(response, 'Registration fee: No verified payment')
         report={'purpose':'dues','start_month':timezone.localdate().strftime('%Y-%m'),'months':1,'sender_name':'Test Provisional','reported_reference':'test','transfer_date':timezone.localdate().isoformat(),'accepted':'on'}
         self.assertEqual(self.client.post('/payments/transfer/',report).status_code,302)
         claim=TransferClaim.objects.get(order__user=self.user)
