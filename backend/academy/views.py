@@ -91,6 +91,24 @@ def verify(request,token):
         return redirect('dashboard')
     return render(request,'form.html',{'title':'Confirm your email address','button':'Verify my email'})
 
+# A provisional profile stores private details without payment, directory linking or admission.
+@login_required
+def provisional_profile(request):
+    from .member_views import player_fees_apply
+    if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
+    if not player_fees_apply(request.user): return HttpResponseForbidden('This profile is for player accounts.')
+    existing=Application.objects.filter(user=request.user).first()
+    if existing and existing.status!='provisional':
+        return redirect('application')
+    form=ApplicationForm(request.POST or None,instance=existing)
+    if request.method=='POST' and form.is_valid():
+        obj=form.save(commit=False);obj.user=request.user;obj.status='provisional';obj.consent_version='2026-10-v4';obj.save()
+        audit(request.user,'profile.provisional_saved',obj)
+        messages.success(request,'Provisional profile saved. You can now report monthly dues and view shared training updates. This is not academy acceptance.')
+        return redirect('dashboard')
+    return render(request,'form.html',{'form':form,'title':'Provisional player profile','button':'Save provisional profile','application_form':True})
+
+
 # Only verified applicants can submit; reviewed records cannot silently re-enter approval.
 @login_required
 def application(request):
@@ -121,13 +139,14 @@ def dashboard(request):
         from .owner_views import workspace
         return workspace(request)
     from .payments import registration_paid
+    from .member_views import provisional_player, visible_announcements
     from .models import CoachApplication
     context={'coach_application':CoachApplication.objects.filter(user=user).first(),'application':Application.objects.filter(user=user).first(), 'registration_paid':registration_paid(user)}
     if user.email_verified and user.coached_squads.exists():
         context.update(role='Coach',players=Player.objects.filter(squad__coaches=user,active=True).distinct())
     else:
         player=approved_player(user)
-        context.update(role='Player' if player else 'Applicant',player=player)
+        context.update(role='Player' if player else ('Provisional player' if provisional_player(user) else 'Applicant'),player=player)
         if player:
             context.update(attendance=Attendance.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:30],feedback=Feedback.objects.filter(player=player,shared_with_player=True).order_by('-created_at')[:20],availability=Availability.objects.filter(player=player).select_related('session').order_by('-session__starts_at')[:20])
     context['coach_onboarding']=bool(not context.get('player') and (user.onboarding_role=='coach' or context['coach_application']))
@@ -142,8 +161,8 @@ def dashboard(request):
         allowed=Q(squad__isnull=True)
         if user.is_superuser: allowed=Q()
         elif context['role']=='Coach': allowed|=Q(squad__coaches=user)
-        else: allowed|=Q(squad_id=context['player'].squad_id)
-        context['announcements']=Announcement.objects.filter(allowed,published=True).distinct().order_by('-created_at')[:20]
+        elif context.get('player'): allowed|=Q(squad_id=context['player'].squad_id)
+        context['announcements']=visible_announcements(user).distinct().order_by('-created_at')[:20]
     return render(request,'dashboard.html',context)
 
 # Lock relevant records while approving to prevent duplicate links and directory-number races.
@@ -160,6 +179,8 @@ def review(request,pk):
             if not obj.user.email_verified: return HttpResponseForbidden('Applicant must verify their email first.')
             decision=form.cleaned_data['decision']
             if decision=='approved':
+                if obj.status=='provisional':
+                    messages.error(request,'The player must submit a formal application before admission review.');return redirect('review',pk=pk)
                 from .payments import registration_paid
                 if not registration_paid(obj.user):
                     messages.error(request,'Registration payment has not been verified. Approval is blocked.')

@@ -9,6 +9,7 @@ from academy.forms import EmailLoginForm
 from academy.owner_activation import OwnerActivationView
 
 urlpatterns=[
+    path('provisional-profile/',views.provisional_profile,name='provisional-profile'),
     path('payments/transfer/',transfers.report,name='transfer-report'),
     path('owner/transfers/',transfers.queue,name='owner-transfers'),
     path('owner/transfers/settings/',transfers.settings_page,name='transfer-settings'),

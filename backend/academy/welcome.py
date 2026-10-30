@@ -17,12 +17,12 @@ def welcome_context(request):
     from .mfa import owner_verified
     if request.user.is_superuser and not owner_verified(request): return {}
     from .views import approved_player
-    from .member_views import visible_announcements,visible_events,visible_sessions
+    from .member_views import visible_announcements,visible_events,visible_sessions,provisional_player
     user=request.user;player=approved_player(user)
     if user.is_superuser: role='Owner / Admin';name='Warkfin Emmanuel'
     elif user.email_verified and user.coached_squads.exists():
         role='Coach';profile=getattr(user,'coach_application',None);name=profile.full_name if profile else user.get_short_name() or 'Coach'
-    else: role='Player' if player else 'Applicant';name=player.display_name if player else user.get_short_name() or 'Academy member'
+    else: role='Player' if player else ('Provisional player' if provisional_player(user) else 'Applicant');name=player.display_name if player else user.get_short_name() or 'Academy member'
     fresh=request.method=='GET' and request.session.pop('welcome_pending',False)
     if not fresh: return {}
     now=timezone.now()

@@ -31,7 +31,7 @@ class Player(models.Model):
 
 # Keep contact and emergency details private; optional media consent is independent of participation.
 class Application(models.Model):
-    STATUS = [('pending','Pending review'), ('approved','Approved'), ('correction','Correction requested'), ('declined','Declined')]
+    STATUS = [('provisional','Provisional profile'), ('pending','Pending review'), ('approved','Approved'), ('correction','Correction requested'), ('declined','Declined')]
     KIND = [('student','Student'), ('graduate','Graduate'), ('adult','Other adult')]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='application')
     full_name = models.CharField(max_length=160)
@@ -63,6 +63,8 @@ class Application(models.Model):
 
 # Unconfirmed venues remain visibly marked until the coordinator confirms them.
 class TrainingSession(models.Model):
+    # Opt in explicitly; provisional accounts never inherit private squad access.
+    provisional_visible = models.BooleanField(default=False, help_text='Show session details to provisional players; registers remain private.')
     STATUS = [('scheduled','Scheduled'),('completed','Completed'),('postponed','Postponed'),('cancelled','Cancelled')]
     title = models.CharField(max_length=140)
     squad = models.ForeignKey(Squad, on_delete=models.PROTECT)
@@ -107,6 +109,7 @@ class Feedback(models.Model):
 
 # A blank squad targets approved members generally, not anonymous website visitors.
 class Announcement(models.Model):
+    provisional_visible = models.BooleanField(default=False, help_text='Also show to provisional players. Use only for general academy notices.')
     title = models.CharField(max_length=180)
     body = models.TextField(max_length=5000)
     squad = models.ForeignKey(Squad, null=True, blank=True, on_delete=models.CASCADE, help_text='Blank means all approved members.')
@@ -158,7 +161,7 @@ class CoachApplication(models.Model):
     experience=models.TextField(max_length=2000,help_text='Describe your coaching experience and any qualifications. Do not upload identity documents here.')
     availability=models.TextField(max_length=1000,help_text='Days and times when you can help.')
     conduct_accepted=models.BooleanField(default=False,verbose_name='I agree to respectful coaching, safe supervision and keeping player records private.')
-    status=models.CharField(max_length=12,default='pending',choices=Application.STATUS)
+    status=models.CharField(max_length=12,default='pending',choices=[item for item in Application.STATUS if item[0]!='provisional'])
     review_note=models.TextField(max_length=500,blank=True)
     submitted_at=models.DateTimeField(auto_now_add=True)
 

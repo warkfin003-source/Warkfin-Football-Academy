@@ -16,6 +16,7 @@ def workspace(request):
     cards=[('Active players',Player.objects.filter(active=True).count(),'/admin/academy/player/'),
            ('Squads',Squad.objects.count(),'/admin/academy/squad/'),
            ('Player applications',Application.objects.filter(status='pending').count(),'/#reviews'),
+           ('Provisional profiles',Application.objects.filter(status='provisional').count(),'/admin/academy/application/?status__exact=provisional'),
            ('Coach applications',CoachApplication.objects.filter(status='pending').count(),'/#reviews'),
            ('Upcoming sessions',TrainingSession.objects.filter(status='scheduled',starts_at__gte=timezone.now()).count(),'/admin/academy/trainingsession/'),
            ('Appointments to review',AppointmentRequest.objects.filter(status='pending').count(),'/admin/academy/appointmentrequest/')]

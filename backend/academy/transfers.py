@@ -51,17 +51,18 @@ class ReportForm(forms.Form):
 
 @login_required
 def report(request):
-    from .member_views import player_fees_apply
+    from .member_views import player_fees_apply, provisional_player
     if not request.user.email_verified or not player_fees_apply(request.user):
         return HttpResponseForbidden('A verified player/applicant account is required.')
     config=configuration()
     if not config:
         messages.warning(request,'Receiving account instructions are not available yet. Do not transfer money.')
         return redirect('billing')
-    form=ReportForm(request.POST or None,initial={'months':1,'transfer_date':timezone.localdate(),'start_month':timezone.localdate().replace(day=1)})
+    form=ReportForm(request.POST or None,initial={'purpose':'dues' if request.GET.get('purpose')=='dues' or provisional_player(request.user) else 'registration','months':1,'transfer_date':timezone.localdate(),'start_month':timezone.localdate().replace(day=1)})
     if request.method=='POST' and form.is_valid():
         data=form.cleaned_data
-        if data['purpose']=='dues' and not approved_player(request.user): return HttpResponseForbidden('Academy acceptance is required for monthly dues.')
+        from .member_views import can_pay_dues
+        if data['purpose']=='dues' and not can_pay_dues(request.user): return HttpResponseForbidden('Complete your provisional player profile before reporting monthly dues.')
         try:
             with transaction.atomic():
                 # Serialize reports with all other per-member payment and allocation work.

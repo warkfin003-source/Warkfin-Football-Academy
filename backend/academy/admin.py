@@ -130,6 +130,8 @@ class PublishingAdmin(LoggedAdmin):
     @admin.action(description='Unpublish selected records')
     def unpublish_records(self,request,queryset): self.set_published(request,queryset,False)
 class AnnouncementAdmin(PublishingAdmin):
+    list_display=('title','published','provisional_visible')
+    list_filter=('published','provisional_visible')
     # Django presents its confirmation page; no destructive action runs from a GET.
     def has_delete_permission(self,request,obj=None): return request.user.is_superuser
     def delete_model(self,request,obj):
@@ -140,7 +142,7 @@ class AnnouncementAdmin(PublishingAdmin):
             AuditEvent.objects.create(actor=request.user,action='announcement.deleted',object_reference=f'announcement:{obj.pk}')
         super().delete_queryset(request,queryset)
 class SessionAdmin(LoggedAdmin):
-    list_display=('title','squad','starts_at','venue','status')
+    list_display=('title','squad','starts_at','venue','status','provisional_visible')
     search_fields=('title','venue')
     list_filter=('status','squad')
     date_hierarchy='starts_at'

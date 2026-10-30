@@ -33,6 +33,16 @@ def player_fees_apply(user):
     return not (user.onboarding_role=='coach' or user.coached_squads.exists() or hasattr(user,'coach_application'))
 
 
+def provisional_player(user):
+    """A complete verified profile permits dues, never admission or squad records."""
+    if not user.email_verified or not player_fees_apply(user) or approved_player(user): return False
+    return Application.objects.filter(user=user,status__in=['provisional','pending','correction']).exists()
+
+
+def can_pay_dues(user):
+    return bool(approved_player(user) or provisional_player(user))
+
+
 @login_required
 def billing(request):
     from .transfers import configuration
@@ -41,7 +51,7 @@ def billing(request):
         'dues':DuesMonth.objects.filter(user=request.user).select_related('payment'),
         'transfer_config':configuration(),'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
         'dues_form':DuesForm(initial={'start_month':timezone.localdate().replace(day=1)}),
-        'can_pay_dues':bool(approved_player(request.user)), 'terms':settings.PAYMENT_TERMS})
+        'can_pay_dues':can_pay_dues(request.user), 'terms':settings.PAYMENT_TERMS})
 
 
 @login_required
@@ -58,7 +68,7 @@ def checkout(request):
     purpose=request.POST.get('purpose')
     start=None; months=0
     if purpose=='dues':
-        if not approved_player(request.user): return HttpResponseForbidden('Academy acceptance is required before dues payment.')
+        if not can_pay_dues(request.user): return HttpResponseForbidden('Complete and verify your provisional player profile before paying dues.')
         form=DuesForm(request.POST)
         if not form.is_valid():
             messages.error(request,'Choose a valid starting month and payment period.'); return redirect('billing')
@@ -127,6 +137,7 @@ def visible_sessions(user):
     if user.is_superuser: return TrainingSession.objects.all()
     if user.email_verified and user.coached_squads.exists(): return TrainingSession.objects.filter(squad__coaches=user).distinct()
     player=approved_player(user)
+    if provisional_player(user): return TrainingSession.objects.filter(provisional_visible=True)
     return TrainingSession.objects.filter(squad=player.squad) if player and player.squad_id else TrainingSession.objects.none()
 
 
@@ -134,6 +145,7 @@ def visible_events(user):
     if user.is_superuser: return AcademyEvent.objects.filter(published=True)
     if not user.email_verified: return AcademyEvent.objects.none()
     personal=Q(recipient=user)
+    if provisional_player(user): personal |= Q(public=True,recipient__isnull=True,squad__isnull=True)
     player=approved_player(user)
     if player or user.coached_squads.exists():
         squads=list(user.coached_squads.values_list('id',flat=True))
@@ -145,6 +157,7 @@ def visible_events(user):
 def visible_announcements(user):
     if user.is_superuser: return Announcement.objects.filter(published=True)
     player=approved_player(user)
+    if provisional_player(user): return Announcement.objects.filter(provisional_visible=True,published=True,squad__isnull=True)
     if not user.email_verified or (not player and not user.coached_squads.exists()): return Announcement.objects.none()
     squads=list(user.coached_squads.values_list('id',flat=True))
     if player and player.squad_id: squads.append(player.squad_id)
@@ -226,8 +239,8 @@ def notification_items(user):
     transfer_available=bool(configuration())
     coach_app=getattr(user,'coach_application',None)
     if user.email_verified and not user.is_superuser and not user.coached_squads.exists() and not coach_app and user.onboarding_role!='coach' and not payments.registration_paid(user):
-        items.append({'key':'registration-fee','title':'Registration fee: ₦5,000','body':'Open Payments & receipts to report a bank transfer for owner verification.' if transfer_available else ('Registration cannot be completed until payment is verified. Payment instructions are not available yet.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.')})
-    if approved_player(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
+        items.append({'key':'registration-fee','title':'Formal admission: ₦5,000 registration fee','body':'Provisional profiles can pay monthly dues without this fee. Pay registration only when applying for formal admission.' if transfer_available else ('Registration cannot be completed until payment is verified. Payment instructions are not available yet.' if not payments.ready() else 'Open Payments & receipts to complete your registration fee.')})
+    if can_pay_dues(user) and not DuesMonth.objects.filter(user=user,month=timezone.localdate().replace(day=1)).exists():
         items.append({'key':'dues:'+timezone.localdate().strftime('%Y-%m'),'title':'Monthly dues: ₦3,000','body':'No verified payment is recorded for this month. Check Payments & receipts.'})
     # Review decisions are private, actionable updates, never public announcements.
     if coach_app:

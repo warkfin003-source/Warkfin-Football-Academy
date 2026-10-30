@@ -2,6 +2,14 @@
 
 This section supersedes all historical setup and launch instructions below.
 
+## Provisional player release — 29 October 2026
+
+Free provisional profiles are now separate from formal admission. Verified adult player accounts can save a complete private profile without the ₦5,000 fee, report ₦3,000 monthly dues and receive owner-verified receipts. Dues do not set registration PAID, create an approved directory player, grant squad access or unlock an Acceptance Letter. Formal applications still require verified registration payment and a separate submission/owner decision.
+
+Provisional accounts see only training sessions explicitly marked Provisional visible, published general notices with that flag, public unrestricted events, and their own private event invitations. Existing private records default to hidden. Owner controls include a provisional-profile count and filter. Coach-only and owner fee exemptions remain intact.
+
+The full suite passed 132 tests after introducing provisional profiles, including four new tests for dues without admission, private-scope isolation, incomplete/unverified/coach restrictions and the separate formal application step. Public registration guidance and the academy notice were updated across the 27 shared public pages. No payments or accepted memberships were fabricated.
+
 ## Implemented
 
 - Public website links to the deployed member portal and public schedule.
