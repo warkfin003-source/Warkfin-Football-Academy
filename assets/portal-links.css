@@ -3,3 +3,6 @@
 
 /* Direct registration and policy routes show their relevant content without course-page clutter. */
 body[data-entry=registration] #academy>:not(#registration),body[data-entry=privacy] #academy>:not(#registration),body[data-entry=participation] #academy>:not(#registration){display:none}
+
+/* Public navigation uses distinct controls rather than underlined text. */
+.main-nav a,.main-nav summary,.section-nav a{text-decoration:none!important;border-radius:8px;transition:background .15s,color .15s}.main-nav a:hover,.main-nav summary:hover,.section-nav a:hover{background:#edf5f1;color:#08634c}.main-nav a:focus-visible,.main-nav summary:focus-visible,.section-nav a:focus-visible{outline:3px solid #c7a45d;outline-offset:2px}.section-nav a{display:inline-flex;padding:10px 16px;background:#edf5f1;border:1px solid #d3e5db;margin:4px;min-height:44px;align-items:center}

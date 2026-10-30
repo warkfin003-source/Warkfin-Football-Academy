@@ -77,3 +77,16 @@
 
 // The browser print dialog can save the private receipt as a PDF.
 document.querySelectorAll('[data-print]').forEach(button=>button.addEventListener('click',()=>window.print()));
+
+// Accessible mobile sidebar and active links, without inline handlers.
+(() => {
+  const nav=document.querySelector('#portal-menu');
+  const toggle=document.querySelector('.sidebar-toggle');
+  if(!nav || !toggle) return;
+  const mobile=window.matchMedia('(max-width: 900px)');
+  function layout(){toggle.hidden=!mobile.matches;nav.classList.toggle('is-collapsed',mobile.matches);toggle.setAttribute('aria-expanded',String(!mobile.matches));}
+  layout();mobile.addEventListener('change',layout);
+  toggle.addEventListener('click',()=>{const collapsed=nav.classList.toggle('is-collapsed');toggle.setAttribute('aria-expanded',String(!collapsed));});
+  nav.addEventListener('keydown',event=>{if(event.key==='Escape' && mobile.matches){nav.classList.add('is-collapsed');toggle.setAttribute('aria-expanded','false');toggle.focus();}});
+  nav.querySelectorAll('a').forEach(link=>{const url=new URL(link.href);if(url.origin===location.origin && url.pathname===location.pathname && url.hash===location.hash && (!url.search || url.search===location.search))link.setAttribute('aria-current','page');});
+})();
