@@ -9,6 +9,7 @@
   if (!form) return;
 
   const kind = form.querySelector('[name=kind]');
+  if (!kind) return;
   const groups = {
     student: ['faculty', 'department', 'level'],
     graduate: ['qualification', 'graduation_year'],
@@ -89,4 +90,24 @@ document.querySelectorAll('[data-print]').forEach(button=>button.addEventListene
   toggle.addEventListener('click',()=>{const collapsed=nav.classList.toggle('is-collapsed');toggle.setAttribute('aria-expanded',String(!collapsed));});
   nav.addEventListener('keydown',event=>{if(event.key==='Escape' && mobile.matches){nav.classList.add('is-collapsed');toggle.setAttribute('aria-expanded','false');toggle.focus();}});
   nav.querySelectorAll('a').forEach(link=>{const url=new URL(link.href);if(url.origin===location.origin && url.pathname===location.pathname && url.hash===location.hash && (!url.search || url.search===location.search))link.setAttribute('aria-current','page');});
+})();
+
+// Links to terms or a collapsed section reveal it before scrolling, including back/forward navigation.
+(() => {
+  function revealHash() {
+    const id=location.hash.slice(1);
+    if(!id) return;
+    let target;
+    try { target=document.getElementById(decodeURIComponent(id)); } catch { return; }
+    if(!target) return;
+    let element=target;
+    while(element){if(element.tagName==='DETAILS')element.open=true;element=element.parentElement;}
+    target.scrollIntoView({block:'start'});
+  }
+  window.addEventListener('hashchange',revealHash);
+  document.addEventListener('click',event=>{
+    const link=event.target.closest('a[href^="#"]');
+    if(link && link.hash===location.hash) revealHash();
+  });
+  revealHash();
 })();

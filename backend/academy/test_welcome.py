@@ -42,7 +42,7 @@ class WelcomeTests(TestCase):
     def test_private_filter_only_own_recipient(self):
         self.event('MY PRIVATE',recipient=self.user);self.event('OTHER PRIVATE',recipient=self.other);self.event('Shared activity')
         self.client.force_login(self.user)
-        response=self.client.get('/calendar/',{'scope':'private','month':self.now.strftime('%Y-%m')})
+        response=self.client.get('/calendar/',{'scope':'private','month':timezone.localtime(self.now).strftime('%Y-%m')})
         self.assertContains(response,'MY PRIVATE');self.assertNotContains(response,'OTHER PRIVATE');self.assertNotContains(response,'Shared activity')
     def test_coach_and_owner_do_not_get_player_fee_notice(self):
         self.squad.coaches.add(self.other)
