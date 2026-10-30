@@ -88,3 +88,43 @@ class TransferTests(TestCase):
         with patch('academy.payments.provider_request') as provider:
             with self.assertRaises(payments.PaymentUnavailable): payments.start_checkout(order)
             provider.assert_not_called()
+
+    def test_review_queue_totals_filters_and_locked_history(self):
+        first = self.report()
+        self.approve(first, reference='HISTORY-001')
+        self.user = self.other
+        self.client.force_login(self.user)
+        second = self.report()
+        self.client.force_login(self.owner)
+        response = self.client.get('/owner/transfers/')
+        self.assertEqual([item.pk for item in response.context['claims']], [second.pk])
+        groups = {item['status']: item for item in response.context['summary']}
+        self.assertEqual(groups['pending']['amount'], Decimal('5000'))
+        self.assertEqual(groups['approved']['count'], 1)
+        self.assertContains(response, 'Pending amounts are reports, not received income')
+        history = self.client.get('/owner/transfers/?status=approved&purpose=registration')
+        self.assertEqual([item.pk for item in history.context['claims']], [first.pk])
+        self.assertContains(history, 'View locked review')
+        self.assertContains(self.client.get(f'/owner/transfers/{first.pk}/'), 'HISTORY-001')
+        dues = self.client.get('/owner/transfers/?status=all&purpose=dues')
+        self.assertEqual(len(dues.context['claims']), 0)
+        self.assertTrue(all(item['amount'] == 0 for item in dues.context['summary']))
+        second.refresh_from_db()
+        self.assertEqual(second.status, 'pending')
+        invalid = self.client.get('/owner/transfers/?status=bad&purpose=bad&page=bad')
+        self.assertEqual(invalid.context['status_filter'], 'pending')
+        self.assertEqual(invalid.context['purpose_filter'], 'all')
+
+    def test_review_history_is_owner_only_and_paginated(self):
+        for n in range(26):
+            order = PaymentOrder.objects.create(user=self.user, purpose='registration', amount_kobo=500000)
+            TransferClaim.objects.create(order=order, sender_name=f'Sender {n}', reported_reference=f'REPORT-{n}', transfer_date=timezone.localdate(), destination='Test bank', accepted_terms='Test only')
+        self.assertEqual(self.client.get('/owner/transfers/?status=all').status_code, 403)
+        self.client.force_login(self.owner)
+        first = self.client.get('/owner/transfers/?status=all&purpose=registration')
+        self.assertEqual(len(first.context['claims']), 25)
+        self.assertContains(first, 'status=all&amp;purpose=registration&amp;page=2', html=False)
+        second = self.client.get('/owner/transfers/?status=all&purpose=registration&page=2')
+        self.assertEqual(len(second.context['claims']), 1)
+        self.assertEqual(first.context['summary'][0]['count'], 26)
+        self.assertFalse(set(x.pk for x in first.context['claims']) & set(x.pk for x in second.context['claims']))

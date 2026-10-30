@@ -22,7 +22,7 @@ class OperationsTests(TestCase):
         for method in [self.client.get, self.client.post]:
             self.assertEqual(method('/owner/operations/').status_code, 403)
         self.client.force_login(self.owner)
-        self.assertContains(self.client.get('/owner/operations/'), 'Recurring durable backups are not configured')
+        self.assertContains(self.client.get('/owner/operations/'), 'Backup status checked 30 October 2026')
         self.assertTrue(Session.objects.filter(pk='expired').exists())
 
     def test_cleanup_preserves_active_and_financial_records(self):
