@@ -1,3 +1,14 @@
+# Operations release — 30 October 2026
+
+This section supersedes older backup and transfer-queue descriptions below.
+
+- Owner transfer review now provides pending, confirmed, declined and all-report filters; registration/dues filters; status counts and amounts across all matching pages; and 25-record pagination. Pending amounts are explicitly not received income. Confirmed amounts are gross transfers before refunds. Completed reviews show the owner-verified receiving-bank reference and remain locked.
+- The new UI is owner-only and does not change payment approval, exact-amount checks, duplicate-reference prevention, admission, receipts or refunds. No genuine transfer was made or approved by this release.
+- Snapshot `snap-red-glitter-b95nfijr` was created and listed successfully from the explicit live branch `br-steep-cherry-b9oyhj1y` on 30 October 2026 at 06:11:51 UTC. It expires 6 November 2026 at 06:30 UTC. This snapshot has not been restore-tested; the historical recovery rehearsal does not prove this new snapshot has been restored.
+- Neon again rejected its native schedule with “backup schedule creation is not enabled for this project”. A daily ChatGPT automation is enabled to attempt a live-branch snapshot, verify the result, avoid recent duplicates and report failures. It uses existing free capacity only. Future successful runs, capacity and connector access remain unverified; this is not independent offsite backup or guaranteed recovery. No snapshots or branches are automatically deleted, restored or finalized.
+- Cleanup remains an explicit owner action, not a scheduled job. Real receiving-bank reconciliation must be performed by the owner against an actual credit. No fabricated payment or production member account was created for verification.
+- Validation: 135 Django tests pass, including transfer summary/filter correctness, locked review references, purpose isolation, pagination, owner authorization and existing CSRF/payment/admission boundaries. No pending model migrations.
+
 # Current release — 29 October 2026
 
 This section supersedes all historical setup and launch instructions below.

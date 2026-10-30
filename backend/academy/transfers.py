@@ -5,6 +5,8 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
+from django.db.models import Sum
+from django.core.paginator import Paginator
 from django.shortcuts import render,redirect,get_object_or_404
 from django.http import HttpResponseForbidden
 from django.utils import timezone
@@ -98,7 +100,27 @@ class ReviewForm(forms.Form):
 
 @owner_required
 def queue(request):
-    return render(request,'transfer_queue.html',{'claims':TransferClaim.objects.filter(status='pending').select_related('order__user').order_by('created_at'),'configured':bool(configuration())})
+    status = request.GET.get('status', 'pending')
+    if status not in ('pending', 'approved', 'declined', 'all'):
+        status = 'pending'
+    purpose = request.GET.get('purpose', 'all')
+    if purpose not in ('all', 'registration', 'dues'):
+        purpose = 'all'
+    claims = TransferClaim.objects.select_related('order__user', 'reviewed_by')
+    if purpose != 'all':
+        claims = claims.filter(order__purpose=purpose)
+    summary = []
+    for key, label in [('pending', 'Awaiting bank verification'), ('approved', 'Owner-confirmed transfers'), ('declined', 'Not verified / declined')]:
+        group = claims.filter(status=key)
+        amount = group.aggregate(total=Sum('order__amount_kobo'))['total'] or 0
+        summary.append({'status': key, 'label': label, 'count': group.count(), 'amount': Decimal(amount) / 100})
+    if status != 'all':
+        claims = claims.filter(status=status)
+    page = Paginator(claims.order_by('-created_at', '-pk'), 25).get_page(request.GET.get('page'))
+    return render(request, 'transfer_queue.html', {
+        'claims': page, 'page': page, 'summary': summary, 'status_filter': status,
+        'purpose_filter': purpose, 'configured': bool(configuration()),
+    })
 
 @owner_required
 def review(request,pk):
