@@ -29,9 +29,10 @@ class DashboardNavigationTests(TestCase):
         self.assertContains(response,'Session number 01');self.assertNotContains(response,'Session number 12')
         self.assertContains(response,'Page 1 of 2')
         self.assertContains(self.client.get('/?page=2'),'Session number 12')
-    def test_reviewed_application_note_visible_but_post_cannot_change_it(self):
+    def test_declined_application_blocks_access_and_cannot_be_changed(self):
         app=Application.objects.create(user=self.user,full_name='Player',phone='08000000000',date_of_birth='2000-01-01',kind='adult',preferred_position='CM',status='declined',review_note='Contact the coordinator about eligibility.')
         response=self.client.get('/application/')
-        self.assertContains(response,'Declined');self.assertContains(response,app.review_note)
+        self.assertContains(response,'Portal access closed',status_code=403)
+        self.client.force_login(self.user)
         self.client.post('/application/',{'status':'approved','full_name':'Changed'})
         app.refresh_from_db();self.assertEqual(app.status,'declined');self.assertEqual(app.full_name,'Player')

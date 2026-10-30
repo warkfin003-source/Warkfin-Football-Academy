@@ -102,3 +102,8 @@ PALMPAY_PUBLIC_KEY = os.getenv('PALMPAY_PUBLIC_KEY', '')
 PALMPAY_BASE_URL = os.getenv('PALMPAY_BASE_URL', 'https://open-gw-sandbox.palmpay-inc.com')
 PALMPAY_CHECKOUT_HOSTS = os.getenv('PALMPAY_CHECKOUT_HOSTS', '').split(',')
 PAYMENT_TERMS = os.getenv('PAYMENT_TERMS', '')
+
+# Paystack secret stays server-side, supplied only through the hosting secret settings.
+PAYSTACK_ENABLED = os.getenv('PAYSTACK_ENABLED', '0') == '1'
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_MODE = os.getenv('PAYSTACK_MODE', 'live')

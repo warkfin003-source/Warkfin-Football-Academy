@@ -26,6 +26,11 @@ class SignUpForm(UserCreationForm):
 class EmailLoginForm(AuthenticationForm):
     username = forms.EmailField(label='Email address')
     def clean_username(self): return self.cleaned_data['username'].strip().lower()
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        from .access import portal_blocked
+        if portal_blocked(user):
+            raise forms.ValidationError('Portal access is closed for this account. Contact Warkfin Emmanuel about the review decision or any payment/refund enquiry.', code='access_closed')
 
 # Conditional required fields and the adult age rule must be checked even with JavaScript disabled.
 class ApplicationForm(forms.ModelForm):

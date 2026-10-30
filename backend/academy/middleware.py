@@ -11,7 +11,14 @@ from .models import RateBucket
 class PortalMiddleware:
     def __init__(self, get_response): self.get_response=get_response
     def __call__(self, request):
-        if request.method=='POST' and (request.path.startswith('/accounts/') or request.path=='/admin/login/' or (request.path.startswith('/payments/') and request.path!='/payments/palmpay/notify/')):
+        from .access import portal_blocked
+        if portal_blocked(request.user):
+            from django.contrib.auth import logout
+            logout(request)
+            response = render(request, 'access_closed.html', status=403)
+            response['Cache-Control'] = 'private, no-store'
+            return response
+        if request.method=='POST' and (request.path.startswith('/accounts/') or request.path=='/admin/login/' or (request.path.startswith('/payments/') and request.path not in ('/payments/palmpay/notify/', '/payments/paystack/notify/'))):
             # REMOTE_ADDR must be set by a trusted ingress. Do not trust client X-Forwarded-For.
             now=timezone.now()
             keys=[('ip',request.META.get('REMOTE_ADDR','unknown'),30)]
@@ -30,7 +37,7 @@ class PortalMiddleware:
                     return response
         response=self.get_response(request)
         response['Cache-Control']='private, no-store'
-        response['Content-Security-Policy']="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+        response['Content-Security-Policy']="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.paystack.com; base-uri 'self'"
         return response
 
 
