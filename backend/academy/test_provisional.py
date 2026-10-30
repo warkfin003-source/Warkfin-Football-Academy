@@ -68,3 +68,15 @@ class ProvisionalTests(TestCase):
         app.refresh_from_db();self.assertEqual(app.status,'provisional')
         self.client.force_login(self.user);self.client.post('/application/',self.data)
         app.refresh_from_db();self.assertEqual(app.status,'pending')
+
+    def test_public_notice_explains_profile_dues_transfer_and_admission(self):
+        self.client.logout()
+        response = self.client.get('/accounts/register/')
+        self.assertContains(response, 'Please read before creating your player account')
+        self.assertContains(response, '1. Create your provisional profile — free')
+        self.assertContains(response, '2. Pay monthly training dues — ₦3,000 per month')
+        self.assertContains(response, '3. Apply for formal admission — a separate ₦5,000 fee')
+        self.assertContains(response, '4. Receive an Acceptance Letter after approval')
+        self.assertContains(response, 'Report your transfer in the portal.')
+        self.assertContains(response, 'do not pay again simply because it is pending')
+        self.assertNotContains(self.client.get('/accounts/register/?role=coach'), 'player-notice-title')
