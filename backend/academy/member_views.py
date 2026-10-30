@@ -46,10 +46,11 @@ def can_pay_dues(user):
 @login_required
 def billing(request):
     from .transfers import configuration
+    from . import paystack
     # Queries are always bound to the signed-in member, never a submitted user ID.
     return render(request,'billing.html',{'orders':PaymentOrder.objects.filter(user=request.user).order_by('-created_at'),
         'dues':DuesMonth.objects.filter(user=request.user).select_related('payment'),
-        'transfer_config':configuration(),'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
+        'paystack_ready':paystack.ready(),'paystack_mode':settings.PAYSTACK_MODE,'transfer_config':configuration(),'paid':payments.registration_paid(request.user),'ready':payments.ready(),'player_fees_apply':player_fees_apply(request.user),
         'dues_form':DuesForm(initial={'start_month':timezone.localdate().replace(day=1)}),
         'can_pay_dues':can_pay_dues(request.user), 'terms':settings.PAYMENT_TERMS})
 
@@ -78,6 +79,8 @@ def checkout(request):
             messages.error(request,'Choose a month from account creation through the next 12 months.');return redirect('billing')
     try:
         order=payments.make_order(request.user,purpose,start,months)
+        if order.purpose != purpose or (purpose == 'dues' and (order.start_month != start or order.months != months)):
+            raise ValueError('A different payment is already pending. Resolve it in Payments & receipts before starting another.')
         return redirect(payments.start_checkout(order))
     except (payments.PaymentUnavailable, ValueError) as exc:
         messages.error(request,str(exc));return redirect('billing')
@@ -102,13 +105,15 @@ def refresh_payment(request,pk):
 @require_POST
 def payment_callback(request):
     # CSRF is replaced here only by provider signature, app ID and independent requery.
-    if not payments.ready(): return HttpResponse('unavailable',status=503)
+    if not payments.palmpay_ready(): return HttpResponse('unavailable',status=503)
     if len(request.body)>16384: return HttpResponse('invalid',status=400)
     try:
         data=json.loads(request.body)
         if not isinstance(data,dict) or data.get('appId')!=settings.PALMPAY_APP_ID or not payments.verify_signature(data):
             return HttpResponse('invalid',status=403)
         order=get_object_or_404(PaymentOrder,reference=data.get('orderId'))
+        from . import paystack
+        if paystack.is_order(order): return HttpResponse('invalid', status=403)
         payments.reconcile(order)
         return HttpResponse('success',content_type='text/plain')
     except (ValueError, TypeError, ValidationError, payments.PaymentUnavailable): return HttpResponse('unconfirmed',status=400)

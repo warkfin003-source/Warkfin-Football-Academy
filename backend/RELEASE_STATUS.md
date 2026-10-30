@@ -1,3 +1,12 @@
+# Access and Paystack release — 30 October 2026
+
+- Declined player applications and inactive linked player records now block fresh login and invalidate existing authenticated sessions on their next request. This includes records declined before deployment. Owner access is exempt. Correction/pending/provisional statuses remain usable. Financial records and refund obligations remain intact; access closure is not a refund.
+- Paystack hosted checkout is implemented using server-side initialization, strict HTTPS checkout host validation, exact server-controlled fees, independent transaction verification and HMAC-SHA512 webhook validation. Browser return URLs cannot credit an order. Existing manual transfer claims cannot also enter checkout; PalmPay and Paystack reconciliation are separated by their validated checkout origin. Duplicate payment events remain idempotent.
+- Verified registration payments arriving after a decline now create the refund obligation as well. Test-mode keys cannot enable collections in a production (DEBUG=False) process.
+- Payment buttons are visible with an explicit activation-pending state until credentials and terms are configured. Owner setup documents PAYSTACK_ENABLED, PAYSTACK_MODE, PAYSTACK_SECRET_KEY and PAYMENT_TERMS, plus the webhook URL. The secret stays in private hosting configuration. No secret key, real merchant authorization or live Paystack transaction was available during implementation; online collection is NOT claimed active. Available payment methods depend on the approved merchant account.
+- Existing account/transfer features remain in place. No existing owner/player data, banking credit or admission decision was fabricated for testing.
+- Validation: 147 Django tests pass, including existing-session revocation, fresh-login denial, exact amount/currency/customer/reference/domain verification, signed webhook replay, manual transfer separation, callback non-settlement, CSRF and late-payment refund recording. No model migrations are required. Provider responses are mocked; this does not prove live gateway collection.
+
 # Operations release — 30 October 2026
 
 This section supersedes older backup and transfer-queue descriptions below.

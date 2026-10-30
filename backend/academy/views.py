@@ -204,7 +204,7 @@ def review(request,pk):
                 from .payments import request_registration_refund
                 request_registration_refund(obj.user)
             audit(request.user,'application.'+decision,obj)
-        messages.success(request,'Application review saved. The applicant can see the decision in their dashboard.')
+        messages.success(request, 'Application declined. Portal login and existing sessions are blocked; financial records and refund obligations are retained.' if decision == 'declined' else 'Application review saved. The applicant can see the decision in their dashboard.')
         return redirect('dashboard')
     return render(request,'review.html',{'application':obj,'form':form,'title':'Review application'})
 

@@ -55,13 +55,13 @@ class MemberTests(TestCase):
         self.assertContains(self.client.get(f'/payments/{order.pk}/receipt/?month={month.pk}'),'November 2026')
         self.assertEqual(self.client.get(f'/payments/{order.pk}/receipt/?month=999').status_code,404)
     def test_webhook_invalid_signature_rejected(self):
-        with patch('academy.payments.ready',return_value=True):
+        with patch('academy.payments.palmpay_ready',return_value=True):
             with override_settings(PALMPAY_APP_ID='academy'):
                 response=self.client.post('/payments/palmpay/notify/',data='{"appId":"academy","sign":"forged"}',content_type='application/json')
         self.assertEqual(response.status_code,403)
     def test_webhook_requeries_after_signature(self):
         order=payments.make_order(self.user,'registration')
-        with patch('academy.payments.ready',return_value=True),patch('academy.payments.verify_signature',return_value=True),patch('academy.payments.provider_request',return_value=self.paid_data(order)) as query:
+        with patch('academy.payments.palmpay_ready',return_value=True),patch('academy.payments.verify_signature',return_value=True),patch('academy.payments.provider_request',return_value=self.paid_data(order)) as query:
             with override_settings(PALMPAY_APP_ID='academy'):
                 response=self.client.post('/payments/palmpay/notify/',data={'appId':'academy','orderId':order.reference.hex},content_type='application/json')
         self.assertEqual(response.content,b'success');query.assert_called_once();self.assertTrue(payments.registration_paid(self.user))

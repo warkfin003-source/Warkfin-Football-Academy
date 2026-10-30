@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from .models import PaymentOrder, DuesMonth, User, AuditEvent, RegistrationRefund
+from .models import PaymentOrder, DuesMonth, User, AuditEvent, RegistrationRefund, Application
 
 REGISTRATION_KOBO = 500000
 MONTH_KOBO = 300000
@@ -24,11 +24,16 @@ class PaymentUnavailable(Exception):
     """Safe public error; never include credentials or raw provider payloads."""
 
 
-def ready():
+def palmpay_ready():
     if not settings.DEBUG and settings.PALMPAY_BASE_URL.rstrip('/') != 'https://open-gw-prod.palmpay-inc.com': return False
     return bool(settings.PALMPAY_ENABLED and settings.PALMPAY_APP_ID and
                 settings.PALMPAY_PRIVATE_KEY and settings.PALMPAY_PUBLIC_KEY and
                 settings.PAYMENT_TERMS and any(settings.PALMPAY_CHECKOUT_HOSTS))
+
+
+def ready():
+    from .paystack import ready as paystack_ready
+    return paystack_ready() or palmpay_ready()
 
 
 def month_sequence(start, count):
@@ -85,7 +90,7 @@ def verify_signature(data):
 
 def provider_request(path, data):
     """TLS-only signed requests; secrets and response bodies are never logged."""
-    if not ready(): raise PaymentUnavailable('Online payment is awaiting activation. Please do not transfer money yet.')
+    if not palmpay_ready(): raise PaymentUnavailable('Online payment is awaiting activation. Please do not transfer money yet.')
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.asymmetric import padding
     base = settings.PALMPAY_BASE_URL.rstrip('/')
@@ -133,6 +138,9 @@ def start_checkout(order):
     if order.status!='pending':
         raise PaymentUnavailable('This order is no longer awaiting payment.')
     if order.checkout_url: return order.checkout_url
+    from . import paystack
+    if settings.PAYSTACK_ENABLED:
+        return paystack.initialize(order)
     result = provider_request('/api/v2/payment/merchant/createorder', {
         'orderId':order.reference.hex, 'amount':order.amount_kobo, 'currency':'NGN',
         'title':'Warkfin Academy '+order.get_purpose_display(),
@@ -173,9 +181,13 @@ def settle(order, data, *, manual_actor=None):
             AuditEvent.objects.create(actor=manual_actor,action='payment.owner_verified' if manual else 'payment.verified',object_reference=f'paymentorder:{order.pk}')
         elif state in (3,4): order.status='failed' if state==3 else 'closed'
         order.save()
+        if order.status == 'paid' and order.purpose == 'registration' and Application.objects.filter(user=order.user, status='declined').exists():
+            request_registration_refund(order.user)
         return order
 
 
 def reconcile(order):
+    from . import paystack
+    if paystack.is_order(order): return paystack.reconcile(order)
     data = provider_request('/api/v2/payment/merchant/order/queryStatus', {'orderId':order.reference.hex})
     return settle(order, data)

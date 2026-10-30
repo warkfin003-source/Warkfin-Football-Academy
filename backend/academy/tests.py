@@ -57,7 +57,8 @@ class PortalTests(TestCase):
         self.assertEqual(self.client.get(reverse('player-detail',args=[self.p.pk])).status_code,403)
     def test_inactive_player_cannot_access_private_records(self):
         self.p.active=False;self.p.save();self.client.force_login(self.u)
-        self.assertContains(self.client.get('/'),'Applicant dashboard')
+        self.assertContains(self.client.get('/'),'Portal access closed',status_code=403)
+        self.client.force_login(self.u)
         self.assertEqual(self.client.post(reverse('availability',args=[self.future.pk]),{'response':'yes'}).status_code,403)
     def test_availability_cannot_spoof_another_player_or_count_as_attendance(self):
         self.client.force_login(self.u)

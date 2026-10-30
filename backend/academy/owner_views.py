@@ -33,7 +33,9 @@ def setup(request):
     checks=[('Merchant App ID',bool(settings.PALMPAY_APP_ID)),('Private signing key',bool(settings.PALMPAY_PRIVATE_KEY)),
         ('Provider verification key',bool(settings.PALMPAY_PUBLIC_KEY)),('Checkout host allowlist',any(settings.PALMPAY_CHECKOUT_HOSTS)),
         ('Full checkout terms',bool(settings.PAYMENT_TERMS)),('Collection enabled',settings.PALMPAY_ENABLED)]
-    return render(request,'owner_setup.html',{'checks':checks,'gateway_ready':ready()})
+    from . import paystack
+    paystack_checks = [('Paystack enabled', settings.PAYSTACK_ENABLED), ('Matching server secret configured', bool(settings.PAYSTACK_SECRET_KEY.startswith('sk_' + settings.PAYSTACK_MODE + '_'))), ('Payment terms configured', bool(settings.PAYMENT_TERMS))]
+    return render(request,'owner_setup.html',{'checks':checks,'gateway_ready':ready(), 'paystack_checks':paystack_checks, 'paystack_ready':paystack.ready(), 'paystack_mode':settings.PAYSTACK_MODE})
 
 class RefundForm(forms.Form):
     status=forms.ChoiceField(choices=[('processing','Processing outside the portal'),('refunded','Record completed external refund')])
