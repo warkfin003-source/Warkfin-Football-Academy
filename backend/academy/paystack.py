@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 from urllib.parse import urlparse
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from django.conf import settings
 from django.http import HttpResponse
@@ -23,19 +24,42 @@ def ready():
 def is_order(order):
     return urlparse(order.checkout_url).hostname == 'checkout.paystack.com'
 
+class ReferenceNotFound(payments.PaymentUnavailable):
+    pass
+
 def api(path, data=None):
     if not ready():
         raise payments.PaymentUnavailable('Paystack checkout is awaiting academy activation. No payment has been started.')
     try:
         request = Request('https://api.paystack.co' + path,
             data=json.dumps(data).encode() if data is not None else None,
-            headers={'Authorization': 'Bearer ' + settings.PAYSTACK_SECRET_KEY, 'Content-Type': 'application/json'},
+            headers={'Authorization': 'Bearer ' + settings.PAYSTACK_SECRET_KEY, 'Content-Type': 'application/json', 'User-Agent': 'WarkfinAcademy/1.0', 'Accept': 'application/json'},
             method='POST' if data is not None else 'GET')
         with urlopen(request, timeout=20) as response:
             result = json.loads(response.read(65536))
         if result.get('status') is not True or not isinstance(result.get('data'), dict):
             raise ValueError('Provider rejected request')
         return result['data']
+    except HTTPError as exc:
+        # Classify narrowly; never expose provider payloads or credentials.
+        try:
+            body = json.loads(exc.read(65536))
+        except (ValueError, OSError):
+            body = {}
+        if not isinstance(body, dict): body = {}
+        if (data is None and path.startswith('/transaction/verify/') and exc.code in (400,404)
+            and body.get('status') is False
+            and str(body.get('message','')).strip().rstrip('.').lower() == 'transaction reference not found'):
+            raise ReferenceNotFound('Paystack has no transaction for this reference.') from exc
+        if exc.code == 401:
+            message = 'Paystack rejected the academy server key. The owner must check the live secret key in Render.'
+        elif exc.code == 403:
+            message = 'Paystack denied this request. The owner must check merchant activation and API access with Paystack.'
+        elif exc.code == 429:
+            message = 'Paystack is temporarily limiting requests. Wait before checking this same order again.'
+        else:
+            message = 'Paystack could not process this request. Keep this order reference and contact the academy.'
+        raise payments.PaymentUnavailable(message) from exc
     except Exception as exc:
         raise payments.PaymentUnavailable('Paystack could not confirm this request. Check your existing order before trying another payment.') from exc
 
@@ -50,10 +74,22 @@ def initialize(order):
     PaymentOrder.objects.filter(pk=order.pk, status='pending').update(checkout_url=url)
     return url
 
-def reconcile(order):
-    if not is_order(order) or hasattr(order, 'transfer_claim'):
+def reconcile(order, allow_unstarted=False):
+    if (not is_order(order) and not (allow_unstarted and not order.checkout_url)) or hasattr(order, 'transfer_claim'):
         raise payments.PaymentUnavailable('This order is not a Paystack checkout.')
-    data = api('/transaction/verify/' + order.reference.hex)
+    try:
+        data = api('/transaction/verify/' + order.reference.hex)
+    except ReferenceNotFound:
+        if not allow_unstarted or order.checkout_url:
+            raise
+        from django.db import transaction
+        from .models import AuditEvent
+        with transaction.atomic():
+            changed = PaymentOrder.objects.filter(pk=order.pk,status='pending',checkout_url='').update(status='closed')
+            if changed:
+                AuditEvent.objects.create(actor=None,action='payment.unstarted_reference_not_found',object_reference=f'paymentorder:{order.pk}')
+        order.refresh_from_db()
+        return order
     customer = data.get('customer')
     if not isinstance(customer, dict): raise ValueError('Missing customer identity')
     if (data.get('reference') != order.reference.hex or data.get('currency') != 'NGN'

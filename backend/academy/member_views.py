@@ -95,9 +95,15 @@ def refresh_payment(request,pk):
         return redirect('billing')
     try:
         if order.status!='paid': payments.reconcile(order)
-        messages.info(request,'Payment status checked. Receipts appear only for verified successful payments.')
-    except (payments.PaymentUnavailable, ValueError):
-        messages.warning(request,'We could not confirm this payment yet. Do not pay again until its status is resolved.')
+        order.refresh_from_db()
+        if order.status == 'closed':
+            messages.info(request,'Paystack found no transaction for this unfinished checkout. It is now closed, not paid. You can choose Monthly Dues and start checkout.')
+        else:
+            messages.info(request,'Payment status checked. Receipts appear only for verified successful payments.')
+    except payments.PaymentUnavailable as exc:
+        messages.warning(request,str(exc))
+    except ValueError:
+        messages.warning(request,'Payment details did not match the order. Contact the academy with your reference; do not pay again.')
     return redirect('billing')
 
 

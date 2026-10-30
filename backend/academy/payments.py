@@ -189,5 +189,7 @@ def settle(order, data, *, manual_actor=None):
 def reconcile(order):
     from . import paystack
     if paystack.is_order(order): return paystack.reconcile(order)
+    if not order.checkout_url and settings.PAYSTACK_ENABLED and not hasattr(order, 'transfer_claim'):
+        return paystack.reconcile(order, allow_unstarted=True)
     data = provider_request('/api/v2/payment/merchant/order/queryStatus', {'orderId':order.reference.hex})
     return settle(order, data)

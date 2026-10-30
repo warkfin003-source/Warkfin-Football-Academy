@@ -120,3 +120,31 @@ class PaystackTests(TestCase):
         with patch('academy.paystack.api') as api:
             self.assertEqual(client.post('/payments/checkout/',{'purpose':'registration','terms':'yes'}).status_code,403)
             api.assert_not_called()
+
+    def test_unstarted_reference_checks_paystack_and_closes_only_when_absent(self):
+        with patch('academy.paystack.api',side_effect=paystack.ReferenceNotFound('Missing')), patch('academy.payments.provider_request') as legacy:
+            response=self.client.post(f'/payments/{self.order.pk}/check/',follow=True)
+            self.assertContains(response,'It is now closed, not paid.')
+            legacy.assert_not_called()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status,'closed')
+        self.assertFalse(payments.registration_paid(self.user))
+
+    def test_unstarted_errors_preserve_order_and_success_is_verified(self):
+        with patch('academy.paystack.api',side_effect=payments.PaymentUnavailable('Unavailable')):
+            with self.assertRaises(payments.PaymentUnavailable): payments.reconcile(self.order)
+        self.order.refresh_from_db();self.assertEqual(self.order.status,'pending')
+        with patch('academy.paystack.api',return_value=self.result()): payments.reconcile(self.order)
+        self.order.refresh_from_db();self.assertEqual(self.order.status,'paid')
+
+    def test_not_found_classification_rejects_auth_errors(self):
+        from io import BytesIO
+        from urllib.error import HTTPError
+        for code in (400,401):
+            error=HTTPError('https://api.paystack.co',code,'Error',{},BytesIO(b'{"status":false,"message":"Transaction reference not found."}'))
+            with patch('academy.paystack.urlopen',side_effect=error):
+                if code==400:
+                    with self.assertRaises(paystack.ReferenceNotFound): paystack.api('/transaction/verify/example')
+                else:
+                    with self.assertRaises(payments.PaymentUnavailable) as caught: paystack.api('/transaction/verify/example')
+                    self.assertNotIsInstance(caught.exception,paystack.ReferenceNotFound)
