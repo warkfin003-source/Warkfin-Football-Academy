@@ -54,6 +54,16 @@ class ApplicationForm(forms.ModelForm):
             self.add_error('graduation_year','Enter a completed graduation year.')
         return data
 
+class PreRegistrationForm(ApplicationForm):
+    """Collect only identity, adult eligibility and consent before monthly dues."""
+    class Meta:
+        model = Application
+        fields = ('full_name', 'phone', 'date_of_birth', 'rules_accepted', 'privacy_accepted')
+        widgets = {'date_of_birth': forms.DateInput(attrs={'type': 'date'})}
+        labels = {'phone': 'Phone number'}
+        help_texts = {'date_of_birth': 'Used to confirm that you are aged 18 or above.'}
+
+
 # Only the owner supplies an approval decision and manually verified directory link.
 class ReviewForm(forms.Form):
     decision = forms.ChoiceField(choices=[('approved','Approve'),('correction','Request correction'),('declined','Decline')])

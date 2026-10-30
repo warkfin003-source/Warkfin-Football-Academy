@@ -80,3 +80,33 @@ class ProvisionalTests(TestCase):
         self.assertContains(response, 'Report your transfer in the portal.')
         self.assertContains(response, 'do not pay again simply because it is pending')
         self.assertNotContains(self.client.get('/accounts/register/?role=coach'), 'player-notice-title')
+
+    def test_short_pre_registration_collects_only_identity_and_opens_dues(self):
+        response=self.client.get('/provisional-profile/')
+        self.assertContains(response,'Free pre-registration')
+        self.assertNotContains(response,'name="kind"')
+        self.assertNotContains(response,'name="preferred_position"')
+        self.assertNotContains(response,'name="emergency_name"')
+        minimal={key:self.data[key] for key in ('full_name','phone','date_of_birth','rules_accepted','privacy_accepted')}
+        response=self.client.post('/provisional-profile/',minimal)
+        self.assertRedirects(response,'/payments/#monthly-dues',fetch_redirect_response=False)
+        app=Application.objects.get(user=self.user)
+        self.assertEqual(app.status,'provisional')
+        self.assertEqual(app.phone,minimal['phone'])
+        self.assertEqual(app.preferred_position,'')
+        self.assertFalse(payments.registration_paid(self.user))
+        from .member_views import can_pay_dues
+        self.assertTrue(can_pay_dues(self.user))
+        self.client.post('/application/',minimal)
+        app.refresh_from_db()
+        self.assertEqual(app.status,'provisional')
+
+    def test_short_pre_registration_still_requires_adult_and_consent(self):
+        minimal={key:self.data[key] for key in ('full_name','phone','date_of_birth','rules_accepted','privacy_accepted')}
+        minimal['date_of_birth']=timezone.localdate().isoformat()
+        self.client.post('/provisional-profile/',minimal)
+        self.assertFalse(Application.objects.filter(user=self.user).exists())
+        minimal['date_of_birth']='2000-01-01'
+        minimal.pop('privacy_accepted')
+        self.client.post('/provisional-profile/',minimal)
+        self.assertFalse(Application.objects.filter(user=self.user).exists())

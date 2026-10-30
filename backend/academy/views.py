@@ -95,18 +95,19 @@ def verify(request,token):
 @login_required
 def provisional_profile(request):
     from .member_views import player_fees_apply
+    from .forms import PreRegistrationForm
     if not request.user.email_verified: return HttpResponseForbidden('Verify your email first.')
     if not player_fees_apply(request.user): return HttpResponseForbidden('This profile is for player accounts.')
     existing=Application.objects.filter(user=request.user).first()
     if existing and existing.status!='provisional':
         return redirect('application')
-    form=ApplicationForm(request.POST or None,instance=existing)
+    form=PreRegistrationForm(request.POST or None,instance=existing)
     if request.method=='POST' and form.is_valid():
         obj=form.save(commit=False);obj.user=request.user;obj.status='provisional';obj.consent_version='2026-10-v4';obj.save()
         audit(request.user,'profile.provisional_saved',obj)
-        messages.success(request,'Provisional profile saved. You can now report monthly dues and view shared training updates. This is not academy acceptance.')
-        return redirect('dashboard')
-    return render(request,'form.html',{'form':form,'title':'Provisional player profile','button':'Save provisional profile','application_form':True})
+        messages.success(request,'Free pre-registration saved. Choose your monthly dues below. No ₦5,000 registration payment is required for dues.')
+        return redirect('/payments/#monthly-dues')
+    return render(request,'form.html',{'form':form,'title':'Free pre-registration','button':'Save and continue to monthly dues','pre_registration':True})
 
 
 # Only verified applicants can submit; reviewed records cannot silently re-enter approval.
