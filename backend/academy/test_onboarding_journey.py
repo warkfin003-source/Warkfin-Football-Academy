@@ -47,8 +47,8 @@ class OnboardingJourneyTests(TestCase):
 
     def test_player_signup_to_acceptance_and_monthly_receipt(self):
         player,user=self.signup_and_verify('player@journey.test')
-        self.assertContains(player.get('/'),'Registration payment &amp; status')
-        self.assertContains(player.get('/'),'do not pay again')
+        self.assertContains(player.get('/'),'Complete free pre-registration')
+        self.assertContains(player.get('/'),'You do not need to pay ₦5,000 first.')
         report={'purpose':'registration','months':'1','sender_name':'Test Player','reported_reference':'test-report','transfer_date':timezone.localdate().isoformat(),'accepted':'on'}
         self.assertEqual(self.post(player,'/payments/transfer/',report).status_code,302)
         claim=TransferClaim.objects.get(order__user=user)

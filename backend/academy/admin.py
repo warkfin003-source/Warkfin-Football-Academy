@@ -61,7 +61,17 @@ for model in (Squad,TrainingSession,Announcement): site.register(model,LoggedAdm
 # Financial records are immutable in admin; the gateway owns payment status.
 from .models import CoachProfile, PaymentOrder, DuesMonth, AcademyEvent, AppointmentRequest
 class PaymentAdmin(AuditAdmin):
-    list_display=('created_at','user','purpose','amount_kobo','status')
+    list_display=('created_at','payer_name','payer_email','payer_phone','purpose','amount_ngn','status','start_month','months','reference','paid_at')
+    search_fields=('payer_name','user__email','user__application__full_name','user__application__phone','provider_reference','=reference')
+    list_select_related=('user','user__application')
+    @admin.display(description='Email', ordering='user__email')
+    def payer_email(self,obj): return obj.user.email
+    @admin.display(description='Profile phone')
+    def payer_phone(self,obj):
+        profile=getattr(obj.user,'application',None)
+        return profile.phone if profile else 'Not provided'
+    @admin.display(description='Amount (NGN)', ordering='amount_kobo')
+    def amount_ngn(self,obj): return f'{obj.amount_kobo / 100:,.2f}'
     readonly_fields=tuple(f.name for f in PaymentOrder._meta.fields)
     list_filter=('status','purpose')
 class DuesAdmin(AuditAdmin):

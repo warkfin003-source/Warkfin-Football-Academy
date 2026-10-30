@@ -20,7 +20,7 @@ class ProvisionalTests(TestCase):
         app=self.profile();self.assertEqual(app.status,'provisional')
         self.assertFalse(Player.objects.filter(user=self.user).exists())
         response = self.client.get('/')
-        self.assertContains(response, 'Provisional Player Account')
+        self.assertContains(response, 'Free pre-registration complete')
         self.assertContains(response, 'Formal admission: separate from your provisional account')
         self.assertNotContains(response, 'Registration fee: No verified payment')
         report={'purpose':'dues','start_month':timezone.localdate().strftime('%Y-%m'),'months':1,'sender_name':'Test Provisional','reported_reference':'test','transfer_date':timezone.localdate().isoformat(),'accepted':'on'}
